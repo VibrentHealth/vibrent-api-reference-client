@@ -110,3 +110,23 @@ This project is licensed under the MIT License with additional disclaimers. See 
 - **Issue Reporting**: Report bugs or issues to info@vibrenthealth.com for review
 - **No Updates**: This reference implementation is not actively maintained or updated
 - **Use at Your Own Risk**: Users are responsible for their own implementation, testing, and deployment 
+
+---
+
+## Multi-language Structure
+
+This repository is organized to support multiple language implementations:
+
+- `python/` – Python reference implementation (see `python/README.md`)
+- `javascript/` – (planned) JavaScript/Node.js implementation
+- `java/` – (planned) Java implementation
+
+Each language implementation writes its output to its own subfolder (e.g., `python/output/`).
+
+## Configuration
+
+All language implementations share the same configuration files in `shared/config/`:
+- `shared/config/vibrent_config.yaml` - Main configuration file
+- `shared/config/sample_config.yaml` - Sample configuration template
+
+This ensures consistent behavior across all language implementations. 

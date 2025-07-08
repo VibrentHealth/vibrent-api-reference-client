@@ -41,7 +41,24 @@ class ConfigManager:
     
     def _find_config_file(self) -> str:
         """Find the configuration file in common locations"""
+        # Get the repo root by finding the directory that contains both 'python' and 'shared' folders
+        current_file = os.path.abspath(__file__)
+        current_dir = os.path.dirname(current_file)
+        
+        # Navigate up the directory tree until we find the repo root
+        repo_root = current_dir
+        while repo_root != os.path.dirname(repo_root):  # Stop at filesystem root
+            if (os.path.exists(os.path.join(repo_root, "python")) and 
+                os.path.exists(os.path.join(repo_root, "shared"))):
+                break
+            repo_root = os.path.dirname(repo_root)
+        
+        script_dir = os.path.join(repo_root, "python")  # python directory
+        
         possible_paths = [
+            os.path.join(repo_root, "shared/config/vibrent_config.yaml"),
+            os.path.join(script_dir, "shared/config/vibrent_config.yaml"),
+            "shared/config/vibrent_config.yaml",
             "config/vibrent_config.yaml",
             "vibrent_config.yaml",
             "config.yaml",
@@ -50,10 +67,12 @@ class ConfigManager:
         
         for path in possible_paths:
             if os.path.exists(path):
+                self.logger.info(f"Found config file: {path}")
                 return path
         
-        # If no config file found, create a default one
-        default_config_path = "config/vibrent_config.yaml"
+        # If no config file found, create a default one in shared directory
+        default_config_path = os.path.join(repo_root, "shared/config/vibrent_config.yaml")
+        self.logger.info(f"Creating default config at: {default_config_path}")
         self._create_default_config(default_config_path)
         return default_config_path
     
@@ -323,8 +342,23 @@ class ConfigManager:
         base_dir = output_config.get(ConfigKeys.BASE_DIRECTORY, FileConstants.OUTPUT_BASE_DIR)
         survey_dir = output_config.get(ConfigKeys.SURVEY_EXPORTS_DIR, FileConstants.SURVEY_EXPORTS_DIR)
         
+        # Get the repo root (same logic as _find_config_file)
+        current_file = os.path.abspath(__file__)
+        current_dir = os.path.dirname(current_file)
+        
+        # Navigate up the directory tree until we find the repo root
+        repo_root = current_dir
+        while repo_root != os.path.dirname(repo_root):  # Stop at filesystem root
+            if (os.path.exists(os.path.join(repo_root, "python")) and 
+                os.path.exists(os.path.join(repo_root, "shared"))):
+                break
+            repo_root = os.path.dirname(repo_root)
+        
+        # Always use the repo root as the base, then add python/output
+        full_base_dir = os.path.join(repo_root, "python", base_dir)
+        
         # Return the full path
-        return f"{base_dir}/{survey_dir}"
+        return f"{full_base_dir}/{survey_dir}"
     
     def get_metadata_config(self) -> Dict[str, Any]:
         """

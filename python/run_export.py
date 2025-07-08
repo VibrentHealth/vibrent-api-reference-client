@@ -5,6 +5,7 @@ Simple runner script for Vibrent Health API Client
 This script makes it easy to run the export without dealing with module paths.
 """
 
+import argparse
 import logging
 import os
 import sys
@@ -26,9 +27,14 @@ def main():
     """Main entry point"""
     load_dotenv()
 
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Vibrent Health API Client - Export Surveys")
+    parser.add_argument("config_file", nargs="?", help="Path to configuration file (optional)")
+    args = parser.parse_args()
+
     try:
         # Load configuration
-        config_manager = ConfigManager()
+        config_manager = ConfigManager(config_file=args.config_file)
         
         # Setup logging
         setup_logging()
@@ -54,8 +60,9 @@ def main():
     except ConfigurationError as e:
         print(f"Configuration error: {str(e)}")
         print("\nPlease make sure to:")
-        print("1. Replace placeholder URLs in config/vibrent_config.yaml with your actual Vibrent Health API URLs")
+        print("1. Replace placeholder URLs in shared/config/vibrent_config.yaml with your actual Vibrent Health API URLs")
         print("2. Set VIBRENT_CLIENT_ID and VIBRENT_CLIENT_SECRET environment variables")
+        print("3. You can specify a custom config file: python run_export.py <path_to_config>")
         return 1
     except Exception as e:
         logger.error(f"Application failed: {str(e)}")

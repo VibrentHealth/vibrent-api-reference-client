@@ -41,5 +41,5 @@ Thumbs.db
 # Project specific
 survey_exports/
 output/
-*.log 
-/config/vibrent_config.yaml
+*.log
+shared/config/vibrent_config.yaml
