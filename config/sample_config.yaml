@@ -1,0 +1,103 @@
+# Sample Vibrent Health API Client Configuration
+# This file demonstrates all available configuration options
+
+# Environment Configuration
+environment:
+  # Default environment to use (staging, production)
+  default: "staging"
+  
+  # Environment-specific configurations
+  # IMPORTANT: Replace the placeholder URLs below with your actual Vibrent Health API URLs
+  environments:
+    staging:
+      base_url: "YOUR_STAGING_BASE_URL_HERE"
+      token_url: "YOUR_STAGING_TOKEN_URL_HERE"
+    production:
+      base_url: "YOUR_PRODUCTION_BASE_URL_HERE"
+      token_url: "YOUR_PRODUCTION_TOKEN_URL_HERE"
+
+# Authentication Configuration
+auth:
+  # Request timeout in seconds
+  timeout: 30
+  
+  # Token refresh buffer time in seconds (refresh token 5 minutes before expiry)
+  refresh_buffer: 300
+
+# API Configuration
+api:
+  # Request timeout for API calls
+  timeout: 30
+
+# Export Configuration
+export:
+  # Date range configuration
+  date_range:
+    # Option 1: Relative date range (days back from today)
+    default_days_back: 30
+    
+    # Option 2: Absolute date range (ISO format: YYYY-MM-DD)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+  
+  # Export format (JSON, CSV)
+  format: "JSON"
+  
+  # Export request configuration
+  request:
+    # Maximum surveys to process (null for all surveys)
+    max_surveys: null
+    
+    # Specific survey IDs to export (null for all surveys)
+    # Example: [123, 456, 789] - only export these specific surveys
+    # Precedence: survey_ids > exclude_survey_ids > max_surveys
+    survey_ids: null
+    
+    # Survey IDs to exclude from export (null for no exclusions)
+    # Example: [999, 888, 777] - exclude these specific surveys
+    # Note: This is ignored if survey_ids is specified
+    exclude_survey_ids: null
+  
+  # Export monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+    
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+    
+    # Whether to continue processing if some exports fail
+    continue_on_failure: true
+
+# Output Configuration
+output:
+  # Base directory for all exports
+  base_directory: "output"
+  
+  # Survey exports directory (will be created under base_directory)
+  survey_exports_dir: "survey_exports"
+  
+  # Whether to extract JSON files from zip archives
+  extract_json: true
+  
+  # Whether to remove zip files after extraction
+  remove_zip_after_extract: true
+
+
+
+
+
+# Metadata Configuration
+metadata:
+  # Whether to save export metadata
+  save_metadata: true
+  
+  # Metadata file name
+  filename: "export_metadata.json"
+  
+  # Whether to include survey details in metadata
+  include_survey_details: true
+  
+  # Whether to include export status details in metadata
+  include_export_status: true 
