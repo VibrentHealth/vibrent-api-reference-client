@@ -4,6 +4,13 @@ This directory contains the Python reference implementation for accessing Vibren
 
 ## Setup
 
+### Option A: Using the unified script (recommended)
+```bash
+# From the parent directory
+./run_python_client.sh
+```
+
+### Option B: Manual setup
 1. Install dependencies:
    ```bash
    pip install -r requirements.txt

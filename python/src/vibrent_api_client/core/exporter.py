@@ -4,6 +4,7 @@ Survey data exporter for Vibrent Health APIs
 
 import json
 import logging
+import os
 import time
 import zipfile
 from dataclasses import asdict
@@ -92,7 +93,7 @@ class SurveyDataExporter:
         # Initialize cumulative status counts
         cumulative_status_counts = {"COMPLETED": 0, "FAILED": 0, "IN_PROGRESS": len(pending_exports)}
 
-        self.logger.info(f"Waiting for {len(pending_exports)} exports to complete")
+        self.logger.info(f"Checking Export Status: Waiting for {len(pending_exports)} exports to complete")
 
         while pending_exports:
             # Check if we've exceeded max wait time
@@ -149,6 +150,10 @@ class SurveyDataExporter:
 
     def extract_json_files(self, zip_files: List[Path]) -> None:
         """Extract JSON files from zip archives"""
+        if zip_files is None:
+            self.logger.error("List of zip files is null")
+            return
+
         if not self.extract_json:
             self.logger.info("JSON extraction disabled in configuration")
             return
@@ -156,26 +161,34 @@ class SurveyDataExporter:
         self.logger.info("Extracting JSON files from zip archives")
 
         for zip_file in zip_files:
+            extraction_successful = True
             try:
                 with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                    for file_info in zip_ref.filelist:
+                    for file_info in zip_ref.infolist():
                         if file_info.filename.endswith(FileConstants.JSON_EXTENSION):
-                            # Extract with a unique name
-                            extracted_name = f"{file_info.filename}"
-                            extracted_path = self.output_dir / extracted_name
+                            extracted_path = self.output_dir / file_info.filename
+                            extracted_path.parent.mkdir(parents=True, exist_ok=True)
 
                             with zip_ref.open(file_info) as source, open(extracted_path, 'wb') as target:
-                                target.write(source.read())
+                                buffer = source.read(8192)
+                                while buffer:
+                                    target.write(buffer)
+                                    buffer = source.read(8192)
 
-                            self.logger.info(f"Extracted: {extracted_name}")
-
-                # Remove the zip file after extraction if configured
-                if self.remove_zip_after_extract:
-                    zip_file.unlink()
-                    self.logger.debug(f"Removed zip file: {zip_file}")
+                            # Show path relative to current working directory for cleaner logging
+                            relative_path = os.path.relpath(extracted_path, start=os.getcwd())
+                            self.logger.info(f"Extracted: {relative_path}")
 
             except Exception as e:
                 self.logger.error(f"Error extracting {zip_file}: {str(e)}")
+                extraction_successful = False
+
+            if extraction_successful and self.remove_zip_after_extract:
+                try:
+                    zip_file.unlink()
+                    self.logger.debug(f"Removed zip file: {zip_file}")
+                except Exception as e:
+                    self.logger.error(f"Error deleting zip file {zip_file}: {str(e)}")
 
     def save_export_metadata(self) -> None:
         """Save export metadata to JSON file"""
@@ -192,7 +205,9 @@ class SurveyDataExporter:
             with open(metadata_file, 'w') as f:
                 json.dump(asdict(self.export_metadata), f, indent=2)
 
-            self.logger.info(SuccessMessages.METADATA_SAVED.format(file_path=metadata_file))
+            # Show path relative to current working directory for cleaner logging
+            relative_path = os.path.relpath(metadata_file, start=os.getcwd())
+            self.logger.info(SuccessMessages.METADATA_SAVED.format(file_path=relative_path))
         except Exception as e:
             self.logger.error(f"Failed to save metadata: {str(e)}")
 
@@ -200,129 +215,143 @@ class SurveyDataExporter:
         """Run the complete export process"""
         try:
             self.logger.info(f"Starting survey data export (Session: {self.export_session_id})")
-
-            # Step 1: Get surveys
-            surveys = self.client.get_surveys()
-            self.export_metadata.total_surveys = len(surveys)
-
+            surveys = self.get_surveys()
             if not surveys:
-                self.logger.warning(ErrorMessages.NO_SURVEYS_FOUND)
                 return
 
-            # Step 2: Filter surveys based on configuration
-            survey_filter = self.config_manager.get_survey_filter()
-            max_surveys = survey_filter.get("max_surveys")
-
-            filtered_surveys = []
-            for survey in surveys:
-                if self.config_manager.should_include_survey(survey.platformFormId, survey.name):
-                    filtered_surveys.append(survey)
-                    if max_surveys and len(filtered_surveys) >= max_surveys:
-                        break
-
+            filtered_surveys = self.filter_surveys(surveys)
             if not filtered_surveys:
-                self.logger.warning("No surveys match the filter criteria")
                 return
 
-            # Step 3: Request exports for filtered surveys
-            export_request = self.create_export_request()
-            export_mapping = {}
-
-            for i, survey in enumerate(filtered_surveys):
-                try:
-                    self.logger.info(
-                        f"[{i + 1}/{len(filtered_surveys)}] Requesting export for survey id: {survey.platformFormId} (Name: '{survey.name}')")
-                    export_id = self.client.request_survey_export(survey.platformFormId, export_request)
-                    self.logger.info(f"Export requested: {export_id}")
-                    export_mapping[survey.platformFormId] = export_id
-
-                except Exception as e:
-                    self.logger.error(ErrorMessages.EXPORT_REQUEST_FAILED.format(
-                        survey_id=survey.platformFormId, error=str(e)
-                    ))
-                    self.export_metadata.failures.append({
-                        "surveyId": survey.platformFormId,
-                        "error": str(e),
-                        "stage": "export_request"
-                    })
-
+            export_mapping = self.request_exports(filtered_surveys)
             if not export_mapping:
-                self.logger.error("No exports were successfully requested")
                 return
 
-            # Step 4: Wait for exports to complete
             completed_exports, failed_export_ids = self.wait_for_exports_completion(export_mapping)
+            downloaded_files = self.download_exports(completed_exports, export_mapping)
 
-            # Step 5: Download completed exports
-            downloaded_files = []
-            for i, (export_id, status) in enumerate(completed_exports.items(), start=1):
-                try:
-                    self.logger.info(f"[{i}/{len(completed_exports)}] Downloading export: {export_id}")
-                    file_path = self.client.download_export(export_id, self.output_dir)
-                    self.logger.info(f"[{i}/{len(completed_exports)}] Downloaded: {file_path}")
-                    downloaded_files.append(file_path)
-
-                    # Store export details by survey ID for embedding
-                    export_detail = {
-                        "exportId": export_id,
-                        "status": asdict(status),
-                    }
-
-                    # Find the survey ID for this export
-                    for survey_id, exp_id in export_mapping.items():
-                        if exp_id == export_id:
-                            self.export_details_by_survey[survey_id] = export_detail
-                            break
-
-                except Exception as e:
-                    self.logger.error(ErrorMessages.EXPORT_DOWNLOAD_FAILED.format(
-                        export_id=export_id, error=str(e)
-                    ))
-                    self.export_metadata.failures.append({
-                        "exportId": export_id,
-                        "error": str(e),
-                        "stage": "download"
-                    })
-
-            # Step 6: Extract JSON files
             if downloaded_files:
                 self.extract_json_files(downloaded_files)
 
-            # Update metadata
-            self.export_metadata.successful_exports = len(completed_exports)
-            self.export_metadata.failed_exports = len(failed_export_ids) + len(self.export_metadata.failures)
-
-            # Step 7: Create survey metadata with embedded export details
-            metadata_config = self.config_manager.get_metadata_config()
-            include_survey_details = metadata_config.get("include_survey_details", True)
-            include_export_status = metadata_config.get("include_export_status", True)
-
-            if include_survey_details:
-                survey_dicts = []
-                for survey in filtered_surveys:
-                    survey_dict = asdict(survey)
-                    # Add export details if available for this survey and configured
-                    if include_export_status and survey.platformFormId in self.export_details_by_survey:
-                        survey_dict['export_details'] = self.export_details_by_survey[survey.platformFormId]
-                    survey_dicts.append(survey_dict)
-
-                self.export_metadata.surveys = survey_dicts
-
-            # Step 8: Set end timestamp and calculate duration
-            end_time = datetime.now()
-            self.export_metadata.end_timestamp = end_time.isoformat()
-            self.export_metadata.duration_seconds = (end_time - self.start_time).total_seconds()
-
-            # Step 9: Save metadata
+            self.update_metadata(completed_exports, failed_export_ids, filtered_surveys)
             self.save_export_metadata()
-
-            self.logger.info(SuccessMessages.EXPORT_COMPLETED)
-            self.logger.info(f"Total surveys: {self.export_metadata.total_surveys}")
-            self.logger.info(f"Successful exports: {self.export_metadata.successful_exports}")
-            self.logger.info(f"Failed exports: {self.export_metadata.failed_exports}")
-            self.logger.info(f"Duration: {self.export_metadata.duration_seconds:.2f} seconds")
-            self.logger.info(f"Output directory: {self.output_dir}")
-
+            self.log_export_summary()
         except Exception as e:
             self.logger.error(f"Export process failed: {str(e)}")
             raise
+
+    def get_surveys(self):
+        """Retrieve surveys and update metadata"""
+        surveys = self.client.get_surveys()
+        self.export_metadata.total_surveys = len(surveys)
+        if not surveys:
+            self.logger.warning(ErrorMessages.NO_SURVEYS_FOUND)
+        return surveys
+
+    def filter_surveys(self, surveys):
+        """Filter surveys based on configuration"""
+        survey_filter = self.config_manager.get_survey_filter()
+        max_surveys = survey_filter.get("max_surveys")
+
+        filtered_surveys = []
+        for survey in surveys:
+            if self.config_manager.should_include_survey(survey.platformFormId, survey.name):
+                filtered_surveys.append(survey)
+                if max_surveys and len(filtered_surveys) >= max_surveys:
+                    break
+
+        if not filtered_surveys:
+            self.logger.warning("No surveys match the filter criteria")
+        return filtered_surveys
+
+    def request_exports(self, filtered_surveys):
+        """Request exports for filtered surveys"""
+        export_request = self.create_export_request()
+        export_mapping = {}
+
+        for i, survey in enumerate(filtered_surveys):
+            try:
+                self.logger.info(
+                    f"[{i + 1}/{len(filtered_surveys)}] Requesting export for survey id: {survey.platformFormId} (Name: '{survey.name}')")
+                export_id = self.client.request_survey_export(survey.platformFormId, export_request)
+                self.logger.info(f"Export requested: {export_id}")
+                export_mapping[survey.platformFormId] = export_id
+                time.sleep(0.5)
+
+            except Exception as e:
+                self.logger.error(ErrorMessages.EXPORT_REQUEST_FAILED.format(
+                    survey_id=survey.platformFormId, error=str(e)
+                ))
+                self.export_metadata.failures.append({
+                    "surveyId": survey.platformFormId,
+                    "error": str(e),
+                    "stage": "export_request"
+                })
+
+        if not export_mapping:
+            self.logger.error("No exports were successfully requested")
+        return export_mapping
+
+    def download_exports(self, completed_exports, export_mapping):
+        """Download completed exports"""
+        downloaded_files = []
+        for i, (export_id, status) in enumerate(completed_exports.items(), start=1):
+            try:
+                self.logger.info(f"[{i}/{len(completed_exports)}] Downloading export: {export_id}")
+                file_path = self.client.download_export(export_id, self.output_dir)
+                relative_path = os.path.relpath(file_path, start=os.getcwd())
+                self.logger.info(f"[{i}/{len(completed_exports)}] Downloaded: {relative_path}")
+                downloaded_files.append(file_path)
+
+                export_detail = {
+                    "exportId": export_id,
+                    "status": asdict(status),
+                }
+
+                for survey_id, exp_id in export_mapping.items():
+                    if exp_id == export_id:
+                        self.export_details_by_survey[survey_id] = export_detail
+                        break
+
+            except Exception as e:
+                self.logger.error(ErrorMessages.EXPORT_DOWNLOAD_FAILED.format(
+                    export_id=export_id, error=str(e)
+                ))
+                self.export_metadata.failures.append({
+                    "exportId": export_id,
+                    "error": str(e),
+                    "stage": "download"
+                })
+        return downloaded_files
+
+    def update_metadata(self, completed_exports, failed_export_ids, filtered_surveys):
+        """Update export metadata"""
+        self.export_metadata.successful_exports = len(completed_exports)
+        self.export_metadata.failed_exports = len(failed_export_ids) + len(self.export_metadata.failures)
+
+        metadata_config = self.config_manager.get_metadata_config()
+        include_survey_details = metadata_config.get("include_survey_details", True)
+        include_export_status = metadata_config.get("include_export_status", True)
+
+        if include_survey_details:
+            survey_dicts = []
+            for survey in filtered_surveys:
+                survey_dict = asdict(survey)
+                if include_export_status and survey.platformFormId in self.export_details_by_survey:
+                    survey_dict['export_details'] = self.export_details_by_survey[survey.platformFormId]
+                survey_dicts.append(survey_dict)
+
+            self.export_metadata.surveys = survey_dicts
+
+        end_time = datetime.now()
+        self.export_metadata.end_timestamp = end_time.isoformat()
+        self.export_metadata.duration_seconds = (end_time - self.start_time).total_seconds()
+
+    def log_export_summary(self):
+        """Log summary of the export process"""
+        self.logger.info(SuccessMessages.EXPORT_COMPLETED)
+        self.logger.info(f"Total surveys: {self.export_metadata.total_surveys}")
+        self.logger.info(f"Successful exports: {self.export_metadata.successful_exports}")
+        self.logger.info(f"Failed exports: {self.export_metadata.failed_exports}")
+        self.logger.info(f"Duration: {self.export_metadata.duration_seconds:.2f} seconds")
+        self.logger.info(f"Output directory: {self.output_dir}")
