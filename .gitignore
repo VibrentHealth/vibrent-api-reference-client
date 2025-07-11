@@ -24,6 +24,7 @@ wheels/
 venv/
 env/
 ENV/
+python/venv/
 
 # Environment variables
 .env
@@ -31,6 +32,7 @@ ENV/
 # IDE
 .vscode/
 .idea/
+
 *.swp
 *.swo
 
@@ -43,3 +45,6 @@ survey_exports/
 output/
 *.log
 shared/config/vibrent_config.yaml
+java/target/
+java/dependency-reduced-pom.xml
+/java/.java-version

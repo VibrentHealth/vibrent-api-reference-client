@@ -69,7 +69,7 @@ class VibrentHealthAPIClient:
                 self.logger.debug(f"Survey data: {survey_data}")
                 continue
 
-        self.logger.info(f"Found {len(surveys)} surveys")
+        self.logger.info("Total surveys associated with this study: {}", len(surveys))
         return surveys
 
     def request_survey_export(self, survey_id: int, export_request: ExportRequest) -> str:

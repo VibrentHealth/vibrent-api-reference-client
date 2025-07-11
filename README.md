@@ -6,20 +6,17 @@ Vibrent Health maintains this repository to provide a demonstration implementati
 
 ## Quick Start
 
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Python Implementation
 
-2. **Set environment variables**:
+1. **Set environment variables**:
    ```bash
    export VIBRENT_CLIENT_ID="your_client_id"
    export VIBRENT_CLIENT_SECRET="your_client_secret"
    export VIBRENT_ENVIRONMENT="staging"  # or "production"
    ```
 
-3. **Configure the client** (required):
-   The client will automatically create a default configuration file at `config/vibrent_config.yaml` if none exists. You must customize this file to:
+2. **Configure the client** (required):
+   The client will automatically create a default configuration file at `shared/config/vibrent_config.yaml` if none exists. You must customize this file to:
    - Replace placeholder URLs with your actual Vibrent Health API URLs
    - Set date ranges (relative or absolute)
    - Filter specific surveys
@@ -28,13 +25,48 @@ Vibrent Health maintains this repository to provide a demonstration implementati
    
    See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration options.
 
-4. **Run the export**:
+3. **Setup and run**:
    ```bash
-   # Option 1: Using the simple runner script
-   python run_export.py
+   # Option 1: Setup and run in one command (recommended)
+   ./run_python_client.sh
    
-   # Option 2: Direct module execution
-   python src/vibrent_api_client/__main__.py
+   # Option 2: Setup only
+   ./run_python_client.sh --setup
+   
+   # Option 3: Run only (if already set up)
+   ./run_python_client.sh --run
+   
+   # Option 4: Manual setup and run
+   cd python
+   pip install -r requirements.txt
+   python run_export.py
+   ```
+
+### Java Implementation
+
+1. **Set environment variables**:
+   ```bash
+   export VIBRENT_CLIENT_ID="your_client_id"
+   export VIBRENT_CLIENT_SECRET="your_client_secret"
+   export VIBRENT_ENVIRONMENT="staging"  # or "production"
+   ```
+
+2. **Configure the client** (uses same shared config as Python):
+   Update `shared/config/vibrent_config.yaml` with your API URLs and settings.
+
+3. **Build and run**:
+   ```bash
+   # Option 1: Build and run in one command (recommended)
+   ./run_java_client.sh
+   
+   # Option 2: Build only
+   ./run_java_client.sh --build
+   
+   # Option 3: Run only (if already built)
+   ./run_java_client.sh --run
+   
+   # Option 4: Direct JAR execution (after building)
+   java -jar java/target/vibrent-api-client-1.0.0.jar
    ```
 
 ## Key Features
@@ -104,10 +136,10 @@ This project is licensed under the MIT License with additional disclaimers. See 
 This repository is organized to support multiple language implementations:
 
 - `python/` – Python reference implementation (see `python/README.md`)
+- `java/` – Java reference implementation (see `java/README.md`)
 - `javascript/` – (planned) JavaScript/Node.js implementation
-- `java/` – (planned) Java implementation
 
-Each language implementation writes its output to its own subfolder (e.g., `python/output/`).
+Each language implementation writes its output to its own subfolder (e.g., `python/output/`, `java/output/`).
 
 ## Configuration
 
