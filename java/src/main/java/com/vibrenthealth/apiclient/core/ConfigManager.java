@@ -176,7 +176,7 @@ public class ConfigManager {
         Map<String, Object> output = new LinkedHashMap<>();
         output.put(Constants.ConfigKeys.BASE_DIRECTORY, Constants.FileConstants.OUTPUT_BASE_DIR);
         output.put(Constants.ConfigKeys.SURVEY_EXPORTS_DIR, Constants.FileConstants.SURVEY_EXPORTS_DIR);
-        output.put(Constants.ConfigKeys.EXTRACT_JSON, true);
+        output.put(Constants.ConfigKeys.EXTRACT_FILES, true);
         output.put(Constants.ConfigKeys.REMOVE_ZIP_AFTER_EXTRACT, true);
         config.put(Constants.ConfigKeys.OUTPUT, output);
         

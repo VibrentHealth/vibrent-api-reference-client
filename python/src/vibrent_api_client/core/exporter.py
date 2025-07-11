@@ -37,7 +37,7 @@ class SurveyDataExporter:
         # Get export configuration
         export_config = self.config_manager.get("export")
         self.export_format = export_config.get("format", "JSON")
-        self.extract_json = output_config.get("extract_json", True)
+        self.extract_files = output_config.get("extract_files", True)
         self.remove_zip_after_extract = output_config.get("remove_zip_after_extract", True)
 
         # Get monitoring configuration
@@ -148,36 +148,35 @@ class SurveyDataExporter:
 
         return completed_exports, failed_exports
 
-    def extract_json_files(self, zip_files: List[Path]) -> None:
-        """Extract JSON files from zip archives"""
+    def extract_export_files(self, zip_files: List[Path]) -> None:
+        """Extract export files (JSON or CSV) from zip archives based on configured format"""
         if zip_files is None:
             self.logger.error("List of zip files is null")
             return
 
-        if not self.extract_json:
-            self.logger.info("JSON extraction disabled in configuration")
+        if not self.extract_files:
+            self.logger.info("File extraction disabled in configuration")
             return
 
-        self.logger.info("Extracting JSON files from zip archives")
+        self.logger.info(f"Extracting {self.export_format} files from zip archives")
 
         for zip_file in zip_files:
             extraction_successful = True
             try:
                 with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                     for file_info in zip_ref.infolist():
-                        if file_info.filename.endswith(FileConstants.JSON_EXTENSION):
-                            extracted_path = self.output_dir / file_info.filename
-                            extracted_path.parent.mkdir(parents=True, exist_ok=True)
+                        extracted_path = self.output_dir / file_info.filename
+                        extracted_path.parent.mkdir(parents=True, exist_ok=True)
 
-                            with zip_ref.open(file_info) as source, open(extracted_path, 'wb') as target:
+                        with zip_ref.open(file_info) as source, open(extracted_path, 'wb') as target:
+                            buffer = source.read(8192)
+                            while buffer:
+                                target.write(buffer)
                                 buffer = source.read(8192)
-                                while buffer:
-                                    target.write(buffer)
-                                    buffer = source.read(8192)
 
-                            # Show path relative to current working directory for cleaner logging
-                            relative_path = os.path.relpath(extracted_path, start=os.getcwd())
-                            self.logger.info(f"Extracted: {relative_path}")
+                        # Show path relative to current working directory for cleaner logging
+                        relative_path = os.path.relpath(extracted_path, start=os.getcwd())
+                        self.logger.info(f"Extracted: {relative_path}")
 
             except Exception as e:
                 self.logger.error(f"Error extracting {zip_file}: {str(e)}")
@@ -231,7 +230,7 @@ class SurveyDataExporter:
             downloaded_files = self.download_exports(completed_exports, export_mapping)
 
             if downloaded_files:
-                self.extract_json_files(downloaded_files)
+                self.extract_export_files(downloaded_files)
 
             self.update_metadata(completed_exports, failed_export_ids, filtered_surveys)
             self.save_export_metadata()
@@ -262,6 +261,9 @@ class SurveyDataExporter:
 
         if not filtered_surveys:
             self.logger.warning("No surveys match the filter criteria")
+        else:
+            self.logger.info(f"Total surveys data to be exported: {len(filtered_surveys)} surveys")
+
         return filtered_surveys
 
     def request_exports(self, filtered_surveys):
@@ -274,7 +276,7 @@ class SurveyDataExporter:
                 self.logger.info(
                     f"[{i + 1}/{len(filtered_surveys)}] Requesting export for survey id: {survey.platformFormId} (Name: '{survey.name}')")
                 export_id = self.client.request_survey_export(survey.platformFormId, export_request)
-                self.logger.info(f"Export requested: {export_id}")
+                self.logger.info(f"[{i + 1}/{len(filtered_surveys)}] Requested export for survey id: {survey.platformFormId}, export id: {export_id}")
                 export_mapping[survey.platformFormId] = export_id
                 time.sleep(0.5)
 

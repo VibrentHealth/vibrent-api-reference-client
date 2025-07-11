@@ -122,7 +122,7 @@ class ConfigManager:
             ConfigKeys.OUTPUT: {
                 ConfigKeys.BASE_DIRECTORY: FileConstants.OUTPUT_BASE_DIR,
                 ConfigKeys.SURVEY_EXPORTS_DIR: FileConstants.SURVEY_EXPORTS_DIR,
-                ConfigKeys.EXTRACT_JSON: True,
+                ConfigKeys.EXTRACT_FILES: True,
                 ConfigKeys.REMOVE_ZIP_AFTER_EXTRACT: True
             },
             ConfigKeys.METADATA: {

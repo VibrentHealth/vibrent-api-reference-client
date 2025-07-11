@@ -64,6 +64,7 @@ class FileConstants:
     """File-related constants"""
     # File extensions
     JSON_EXTENSION = ".json"
+    CSV_EXTENSION = ".csv"
     
     # Default file patterns
     DEFAULT_METADATA_FILENAME = "export_metadata.json"
@@ -150,7 +151,7 @@ class ConfigKeys:
     # Output keys
     BASE_DIRECTORY = "base_directory"
     SURVEY_EXPORTS_DIR = "survey_exports_dir"
-    EXTRACT_JSON = "extract_json"
+    EXTRACT_FILES = "extract_files"
     REMOVE_ZIP_AFTER_EXTRACT = "remove_zip_after_extract"
     
 

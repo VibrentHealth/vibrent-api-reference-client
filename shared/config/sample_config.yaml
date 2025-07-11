@@ -78,8 +78,8 @@ output:
   # Survey exports directory (will be created under base_directory)
   survey_exports_dir: "survey_exports"
   
-  # Whether to extract JSON files from zip archives
-  extract_json: true
+  # Whether to extract export files (JSON/CSV) from zip archives based on export.format setting
+  extract_files: true
   
   # Whether to remove zip files after extraction
   remove_zip_after_extract: true

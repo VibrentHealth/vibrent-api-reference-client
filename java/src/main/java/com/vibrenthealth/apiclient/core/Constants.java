@@ -70,10 +70,7 @@ public class Constants {
     
     // File Constants
     public static class FileConstants {
-        /** File-related constants */
-        // File extensions
-        public static final String JSON_EXTENSION = ".json";
-        
+
         // Default file patterns
         public static final String DEFAULT_METADATA_FILENAME = "export_metadata.json";
         
@@ -160,7 +157,7 @@ public class Constants {
         // Output keys
         public static final String BASE_DIRECTORY = "base_directory";
         public static final String SURVEY_EXPORTS_DIR = "survey_exports_dir";
-        public static final String EXTRACT_JSON = "extract_json";
+        public static final String EXTRACT_FILES = "extract_files";
         public static final String REMOVE_ZIP_AFTER_EXTRACT = "remove_zip_after_extract";
         
         // Metadata keys

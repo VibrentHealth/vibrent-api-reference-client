@@ -196,7 +196,7 @@ def example_custom_output():
             "output": {
                 "base_directory": "custom_exports",
                 "survey_exports_dir": "survey_data",
-                "extract_json": True,
+                "extract_files": True,
                 "remove_zip_after_extract": False  # Keep zip files
             },
             "export": {

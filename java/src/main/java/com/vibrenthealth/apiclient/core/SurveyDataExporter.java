@@ -5,13 +5,11 @@ import com.vibrenthealth.apiclient.models.ExportMetadata;
 import com.vibrenthealth.apiclient.models.ExportRequest;
 import com.vibrenthealth.apiclient.models.ExportStatus;
 import com.vibrenthealth.apiclient.models.Survey;
-import com.vibrenthealth.apiclient.utils.Helpers;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +19,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Main class for orchestrating the survey data export process
@@ -32,9 +29,8 @@ public class SurveyDataExporter {
     private final ConfigManager configManager;
     private final String environment;
     private final VibrentHealthAPIClient client;
-    private final Path outputBaseDir;
     private final String exportFormat;
-    private final boolean extractJson;
+    private final boolean extractFiles;
     private final boolean removeZipAfterExtract;
     private final int pollingInterval;
     private final Integer maxWaitTime;
@@ -54,13 +50,11 @@ public class SurveyDataExporter {
 
         // Get output configuration
         Map<String, Object> outputConfig = configManager.getOutputConfig();
-        this.outputBaseDir = Paths.get(outputBaseDir != null ? outputBaseDir :
-                (String) outputConfig.getOrDefault(Constants.ConfigKeys.BASE_DIRECTORY, "survey_exports"));
 
         // Get export configuration
         Map<String, Object> exportConfig = (Map<String, Object>) configManager.get(Constants.ConfigKeys.EXPORT);
         this.exportFormat = (String) exportConfig.getOrDefault(Constants.ConfigKeys.FORMAT, Constants.ExportFormat.JSON);
-        this.extractJson = (Boolean) outputConfig.getOrDefault(Constants.ConfigKeys.EXTRACT_JSON, true);
+        this.extractFiles = (Boolean) outputConfig.getOrDefault(Constants.ConfigKeys.EXTRACT_FILES, true);
         this.removeZipAfterExtract = (Boolean) outputConfig.getOrDefault(Constants.ConfigKeys.REMOVE_ZIP_AFTER_EXTRACT, true);
 
         // Get monitoring configuration
@@ -206,20 +200,20 @@ public class SurveyDataExporter {
     }
 
     /**
-     * Extract JSON files from zip archives
+     * Extract export files (JSON or CSV) from zip archives based on configured format
      */
-    public void extractJsonFiles(List<Path> zipFiles) {
+    public void extractExportFiles(List<Path> zipFiles) {
         if (zipFiles == null) {
             logger.error("List of zip files is null");
             return;
         }
 
-        if (!extractJson) {
-            logger.info("JSON extraction disabled in configuration");
+        if (!extractFiles) {
+            logger.info("File extraction disabled in configuration");
             return;
         }
 
-        logger.info("Extracting JSON files from zip archives");
+        logger.info("Extracting {} files from zip archives", exportFormat);
 
         for (Path zipFile : zipFiles) {
             boolean extractionSuccessful = true;
@@ -227,22 +221,20 @@ public class SurveyDataExporter {
                 Enumeration<ZipArchiveEntry> entries = zip.getEntries();
                 while (entries.hasMoreElements()) {
                     ZipArchiveEntry entry = entries.nextElement();
-                    if (entry.getName().endsWith(Constants.FileConstants.JSON_EXTENSION)) {
-                        Path extractedPath = outputDir.resolve(entry.getName());
-                        Files.createDirectories(extractedPath.getParent());
+                    Path extractedPath = outputDir.resolve(entry.getName());
+                    Files.createDirectories(extractedPath.getParent());
 
-                        try (InputStream inputStream = zip.getInputStream(entry);
-                             FileOutputStream outputStream = new FileOutputStream(extractedPath.toFile())) {
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                                outputStream.write(buffer, 0, bytesRead);
-                            }
+                    try (InputStream inputStream = zip.getInputStream(entry);
+                         FileOutputStream outputStream = new FileOutputStream(extractedPath.toFile())) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = inputStream.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
                         }
-
-                        Path relativePath = Paths.get("").toAbsolutePath().relativize(extractedPath);
-                        logger.info("Extracted: {}", relativePath);
                     }
+
+                    Path relativePath = Paths.get("").toAbsolutePath().relativize(extractedPath);
+                    logger.info("Extracted: {}", relativePath);
                 }
             } catch (IOException e) {
                 logger.error("Error extracting {}: {}", zipFile, e.getMessage());
@@ -298,6 +290,7 @@ public class SurveyDataExporter {
                 logger.warn("No surveys match the filter criteria");
                 return;
             }
+            logger.info("Total surveys data to be exported: {} surveys", filteredSurveys.size());
 
             Map<Integer, String> exportMapping = requestExports(filteredSurveys);
 
@@ -310,7 +303,7 @@ public class SurveyDataExporter {
             List<Path> downloadedFiles = downloadCompletedExports(completedExports, exportMapping);
 
             if (!downloadedFiles.isEmpty()) {
-                extractJsonFiles(downloadedFiles);
+                extractExportFiles(downloadedFiles);
             }
 
             updateMetadata(completedExports);
@@ -359,7 +352,8 @@ public class SurveyDataExporter {
                 logger.info("[{}/{}] Requesting export for survey id: {} (Name: '{}')",
                         i + 1, filteredSurveys.size(), survey.getPlatformFormId(), survey.getName());
                 String exportId = client.requestSurveyExport(survey.getPlatformFormId(), exportRequest);
-                logger.info("Export requested: {}", exportId);
+                logger.info("[{}/{}] Requested export for survey id: {}, export id: {}",
+                        i + 1, filteredSurveys.size(), survey.getPlatformFormId(), exportId);
                 exportMapping.put(survey.getPlatformFormId(), exportId);
                 try {
                     Thread.sleep(500);
@@ -392,7 +386,7 @@ public class SurveyDataExporter {
             try {
                 logger.info("[{}/{}] Downloading export: {}", completedCount, completedExports.size(), exportId);
                 Path filePath = client.downloadExport(exportId, outputDir);
-                Path relativePath = outputDir.relativize(filePath);
+                Path relativePath = Paths.get("").toAbsolutePath().relativize(filePath);
                 logger.info("[{}/{}] Downloaded: {}", completedCount, completedExports.size(), relativePath);
                 downloadedFiles.add(filePath);
 
