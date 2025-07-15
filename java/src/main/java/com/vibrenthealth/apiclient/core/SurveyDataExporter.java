@@ -311,7 +311,7 @@ public class SurveyDataExporter {
             finalizeExport();
 
         } catch (Exception e) {
-            logger.error("Export process failed: {}", e.getMessage());
+            logger.error("Export process failed: {}", e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -326,9 +327,10 @@ public class ConfigManager {
         String absoluteEnd = (String) dateConfig.get(Constants.ConfigKeys.ABSOLUTE_END_DATE);
 
         if (absoluteStart != null && absoluteEnd != null) {
-            // Convert ISO date strings to timestamps
-            LocalDateTime startDt = LocalDateTime.parse(absoluteStart);
-            LocalDateTime endDt = LocalDateTime.parse(absoluteEnd);
+            // Convert ISO date strings to timestamps using DateTimeFormatter
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+            LocalDateTime startDt = LocalDate.parse(absoluteStart, formatter).atStartOfDay();
+            LocalDateTime endDt = LocalDate.parse(absoluteEnd, formatter).atStartOfDay();
             
             long startTime = startDt.toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
             long endTime = endDt.toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
