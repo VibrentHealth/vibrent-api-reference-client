@@ -51,7 +51,15 @@ class VibrentHealthAPIClient:
             response.raise_for_status()
             return response
         except requests.RequestException as e:
-            raise VibrentHealthAPIError(ErrorMessages.API_REQUEST_FAILED.format(error=str(e)))
+            error_content = ""
+            if e.response is not None:
+                try:
+                    error_content = e.response.text
+                except Exception:
+                    pass
+            raise VibrentHealthAPIError(
+                ErrorMessages.API_REQUEST_FAILED.format(error=f"{str(e)}; Response content: {error_content}")
+            )
 
     def get_surveys(self) -> List[Survey]:
         """Get list of available surveys"""
