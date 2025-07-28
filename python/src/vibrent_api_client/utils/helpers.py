@@ -3,7 +3,7 @@ Helper utilities for Vibrent Health API Client
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def safe_from_dict(cls, data: dict, logger=None):
@@ -44,7 +44,7 @@ def setup_logging(log_level: str = "INFO") -> None:
     os.makedirs(logs_dir, exist_ok=True)
     
     # Create log file path
-    log_filename = f"vibrent_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    log_filename = f"vibrent_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
     log_file_path = os.path.join(logs_dir, log_filename)
     
     logging.basicConfig(

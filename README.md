@@ -72,11 +72,14 @@ Vibrent Health maintains this repository to provide a demonstration implementati
 ## Key Features
 
 - **Flexible Date Ranges**: Support for both relative (days back) and absolute date ranges
+- **Automatic Date Range Splitting**: Large date ranges (>6 months) are automatically split into smaller chunks for better API performance
 - **Survey Filtering**: Export specific surveys by ID, exclude specific surveys, or limit the number of surveys processed
-- **Organized Output Structure**: Hierarchical output directories for different data types
+- **File Merging**: Multiple export files for the same survey are automatically merged into a single file
+- **Organized Output Structure**: Hierarchical output directories with clear file naming conventions
 - **Environment Configuration**: All API endpoints and authentication URLs are configurable
 - **Error Handling**: Configurable error reporting
 - **Metadata Export**: Detailed export metadata with survey and status information
+- **UTC Timezone Support**: All timestamps use UTC for consistent behavior across different timezones
 
 ## Usage as Python Module
 

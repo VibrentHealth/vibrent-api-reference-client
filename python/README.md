@@ -28,6 +28,10 @@ This directory contains the Python reference implementation for accessing Vibren
 ## Output
 - All exported data will be saved in `python/output/` by default.
 - Log files will be saved in `python/output/logs/` with timestamps.
+- Survey data files are organized in `survey_responses/` subdirectories with clear naming:
+  - Individual parts: `survey_name_part_1.json`, `survey_name_part_2.json`, etc.
+  - Merged files: `survey_name_merged.json` (combines all parts)
+- All timestamps use UTC timezone for consistency.
 
 ## Documentation
 - See the main repository `README.md` and `CONFIGURATION.md` for cross-language details.

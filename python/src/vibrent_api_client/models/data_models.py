@@ -17,7 +17,7 @@ class Survey:
     name: str
     displayName: str
     platformFormId: int
-    export_details: Optional[Dict] = None
+    export_details: Optional[List[Dict]] = None
 
     @classmethod
     def from_dict(cls, data: dict):

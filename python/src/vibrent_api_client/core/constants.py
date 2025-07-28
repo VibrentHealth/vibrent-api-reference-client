@@ -52,6 +52,9 @@ class TimeConstants:
     # Milliseconds in a day
     MS_PER_DAY = 24 * 60 * 60 * 1000
     
+    # Milliseconds in 6 months (approximate - 180 days)
+    MS_PER_6_MONTHS = 30 * 24 * 60 * 60 * 1000
+    
     # Default timeouts
     DEFAULT_TIMEOUT = 30
     DEFAULT_POLLING_INTERVAL = 10

@@ -7,7 +7,7 @@ and environment variables.
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import yaml
@@ -258,7 +258,7 @@ class ConfigManager:
         else:
             # Use relative date range
             days_back = date_config.get(ConfigKeys.DEFAULT_DAYS_BACK, 30)
-            end_time = int(datetime.now().timestamp() * 1000)
+            end_time = int(datetime.now(timezone.utc).timestamp() * 1000)
             start_time = end_time - (days_back * TimeConstants.MS_PER_DAY)
         
         return {
