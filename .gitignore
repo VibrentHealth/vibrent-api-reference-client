@@ -48,3 +48,5 @@ shared/config/vibrent_config.yaml
 java/target/
 java/dependency-reduced-pom.xml
 /java/.java-version
+/java/src/main/main.iml
+/java/vibrent-api-reference-client.iml
