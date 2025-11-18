@@ -99,9 +99,11 @@ class ConfigManager:
                 ConfigKeys.REFRESH_BUFFER: TimeConstants.TOKEN_REFRESH_BUFFER
             },
             ConfigKeys.API: {
-                ConfigKeys.TIMEOUT: TimeConstants.DEFAULT_TIMEOUT
+                ConfigKeys.TIMEOUT: TimeConstants.DEFAULT_TIMEOUT,
+                ConfigKeys.DEBUG_LOGGING: False
             },
             ConfigKeys.EXPORT: {
+                ConfigKeys.TYPE: "survey",  # Export type: survey, survey_v2, ehr, etc.
                 ConfigKeys.DATE_RANGE: {
                     ConfigKeys.DEFAULT_DAYS_BACK: 30,
                     ConfigKeys.ABSOLUTE_START_DATE: None,
@@ -117,6 +119,30 @@ class ConfigManager:
                     ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
                     ConfigKeys.MAX_WAIT_TIME: None,
                     ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                # Survey V1-specific configuration
+                ConfigKeys.SURVEY: {
+                    ConfigKeys.FORMAT: ExportFormat.JSON,
+                    ConfigKeys.REQUEST: {
+                        ConfigKeys.MAX_SURVEYS: None,
+                        ConfigKeys.SURVEY_IDS: None,
+                        ConfigKeys.EXCLUDE_SURVEY_IDS: None
+                    }
+                },
+                # Survey V2-specific configuration (wide format, advanced options)
+                ConfigKeys.SURVEY_V2: {
+                    "file_type": "CSV",
+                    "remove_pii": False,
+                    "completed_only": True,
+                    "include_withdrawn_user": True,
+                    "combine_values_for_multiple_choices": True,
+                    "choice_value_format": "VALUE_AND_TEXT",  # VALUE_ONLY, TEXT_ONLY, VALUE_AND_TEXT
+                    "user_type": "REAL_ONLY",  # REAL_ONLY, TEST_ONLY, ALL_USERS
+                    ConfigKeys.REQUEST: {
+                        ConfigKeys.MAX_SURVEYS: None,
+                        ConfigKeys.SURVEY_IDS: None,
+                        ConfigKeys.EXCLUDE_SURVEY_IDS: None
+                    }
                 }
             },
             ConfigKeys.OUTPUT: {

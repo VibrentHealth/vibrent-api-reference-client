@@ -114,6 +114,52 @@ class ExportStatus:
 
 
 @dataclass
+class WideFormatReportRequest:
+    """
+    Survey V2 export request with wide format and advanced options.
+
+    This request type supports the V2 API endpoint with additional features like
+    PII removal, wide format reporting, and data dictionary inclusion.
+    """
+    dateFrom: int
+    dateTo: int
+    fileType: str = "CSV"  # CSV or JSON
+    removePII: bool = False
+    completedOnly: bool = True
+    includeWithdrawnUser: bool = True
+    combineValuesForMultipleChoices: bool = True
+    choiceValueFormat: str = "VALUE_AND_TEXT"  # VALUE_ONLY, TEXT_ONLY, VALUE_AND_TEXT
+    userType: str = "REAL_ONLY"  # REAL_ONLY, TEST_ONLY, ALL_USERS
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create WideFormatReportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': 0,
+            'dateTo': 0,
+            'fileType': 'CSV',
+            'removePII': False,
+            'completedOnly': True,
+            'includeWithdrawnUser': True,
+            'combineValuesForMultipleChoices': True,
+            'choiceValueFormat': 'VALUE_AND_TEXT',
+            'userType': 'REAL_ONLY'
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return asdict(self)
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
 class ExportMetadata:
     """Metadata for the export session"""
     export_session_id: str
@@ -142,7 +188,7 @@ class ExportMetadata:
             'end_timestamp': None,
             'duration_seconds': None
         }
-        
+
         merged_data = {**defaults, **data}
         json_str = json.dumps(merged_data)
         return cls(**json.loads(json_str))
