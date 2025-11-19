@@ -13,7 +13,14 @@ import requests
 from .auth import AuthenticationManager, VibrentHealthAPIError
 from .config import ConfigManager
 from .constants import APIEndpoints, ErrorMessages, Headers, TimeConstants
-from ..models import Survey, ExportRequest, ExportStatus, WideFormatReportRequest
+from ..models import (
+    Survey,
+    ExportRequest,
+    ExportStatus,
+    WideFormatReportRequest,
+    EHRExportRequest,
+    Participant
+)
 from ..utils.helpers import safe_from_dict
 
 
@@ -205,6 +212,45 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"Survey V2 export requested successfully: {export_id}")
+        return export_id
+
+    def request_ehr_export(self, participant_id: int, export_request: EHRExportRequest) -> str:
+        """
+        Request EHR data export for a specific participant.
+
+        This API endpoint allows you to export Electronic Health Record (EHR) data
+        for individual participants within a specified date range.
+
+        Args:
+            participant_id: The participant's unique identifier
+            export_request: EHRExportRequest with date range
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Example:
+            >>> request = EHRExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000
+            ... )
+            >>> export_id = client.request_ehr_export(12345, request)
+        """
+        self.logger.info(f"Requesting EHR export for participant {participant_id}")
+        self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.EHR_EXPORT_REQUEST.format(participant_id=participant_id),
+            json=asdict(export_request)
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"EHR export requested successfully: {export_id}")
         return export_id
 
     def get_export_status(self, export_id: str) -> ExportStatus:

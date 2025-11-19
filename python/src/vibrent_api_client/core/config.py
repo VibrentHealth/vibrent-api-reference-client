@@ -123,6 +123,7 @@ class ConfigManager:
                 # Survey V1-specific configuration
                 ConfigKeys.SURVEY: {
                     ConfigKeys.FORMAT: ExportFormat.JSON,
+                    "split_date_range": True,
                     ConfigKeys.REQUEST: {
                         ConfigKeys.MAX_SURVEYS: None,
                         ConfigKeys.SURVEY_IDS: None,
@@ -132,6 +133,7 @@ class ConfigManager:
                 # Survey V2-specific configuration (wide format, advanced options)
                 ConfigKeys.SURVEY_V2: {
                     "file_type": "CSV",
+                    "split_date_range": True,
                     "remove_pii": False,
                     "completed_only": True,
                     "include_withdrawn_user": True,
@@ -143,6 +145,13 @@ class ConfigManager:
                         ConfigKeys.SURVEY_IDS: None,
                         ConfigKeys.EXCLUDE_SURVEY_IDS: None
                     }
+                },
+                # EHR-specific configuration
+                ConfigKeys.EHR: {
+                    "split_date_range": True,
+                    "participant_ids": [],
+                    "max_participants": None,
+                    "exclude_participant_ids": None
                 }
             },
             ConfigKeys.OUTPUT: {

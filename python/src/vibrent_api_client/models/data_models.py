@@ -160,6 +160,73 @@ class WideFormatReportRequest:
 
 
 @dataclass
+class EHRExportRequest:
+    """
+    EHR data export request.
+
+    Used for requesting Electronic Health Record (EHR) data exports for a participant.
+    """
+    dateFrom: Optional[int] = None
+    dateTo:  Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create EHRExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': 0,
+            'dateTo': 0
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return asdict(self)
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
+class Participant:
+    """
+    Represents a participant for EHR exports.
+
+    Attributes:
+        id: Participant's unique identifier
+        external_id: Optional external identifier for the participant
+        name: Optional participant name (for display purposes only)
+    """
+    id: int
+    external_id: Optional[str] = None
+    name: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create Participant object from dictionary"""
+        defaults = {
+            'id': 0,
+            'external_id': None,
+            'name': None
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return asdict(self)
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
 class ExportMetadata:
     """Metadata for the export session"""
     export_session_id: str

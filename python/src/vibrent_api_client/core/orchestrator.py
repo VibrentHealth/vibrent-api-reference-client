@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .base_exporter import BaseExporter
 from .config import ConfigManager
-from .constants import ErrorMessages, ExportStatus, FileConstants, SuccessMessages, TimeConstants
+from .constants import ConfigKeys, ErrorMessages, ExportStatus, FileConstants, SuccessMessages, TimeConstants
 from ..models import ExportMetadata
 
 
@@ -265,11 +265,21 @@ class ExportOrchestrator:
         start_time = date_range["start_time"]
         end_time = date_range["end_time"]
 
+        # Get the export type from the exporter (not from config, as it may be overridden by CLI)
+        export_type = self.exporter.get_export_type()
+        split_date_range_config = self.config_manager.get(
+            f"{ConfigKeys.EXPORT}.{export_type}.split_date_range",
+            True  # Default to True for backward compatibility
+        )
+
         # Check if date range needs splitting (>6 months)
         date_range_duration = end_time - start_time
-        needs_splitting = date_range_duration > TimeConstants.MS_PER_6_MONTHS
+        should_split = (
+            split_date_range_config and
+            date_range_duration > TimeConstants.MS_PER_6_MONTHS
+        )
 
-        if needs_splitting:
+        if should_split:
             self.logger.info(
                 f"Date range ({date_range_duration / TimeConstants.MS_PER_DAY:.1f} days) exceeds 6 months. "
                 f"Splitting into chunks."
@@ -277,6 +287,11 @@ class ExportOrchestrator:
             date_chunks = self.split_date_range_into_chunks(start_time, end_time)
             self.logger.info(f"Split date range into {len(date_chunks)} chunks")
         else:
+            if not split_date_range_config:
+                self.logger.info(
+                    f"Date range splitting is disabled for {export_type} exports. "
+                    f"Using single date range ({date_range_duration / TimeConstants.MS_PER_DAY:.1f} days)."
+                )
             date_chunks = [{"start_time": start_time, "end_time": end_time}]
 
         # Request exports for each item and chunk
@@ -296,7 +311,7 @@ class ExportOrchestrator:
 
                     # Log request
                     item_name = self.exporter.get_item_display_name(item)
-                    if needs_splitting:
+                    if should_split:
                         self.logger.info(
                             f"[{i + 1}/{len(filtered_items)}][{j + 1}/{len(date_chunks)}] "
                             f"Requesting export for {item_name} - "
@@ -314,8 +329,8 @@ class ExportOrchestrator:
                         "exportId": export_id,
                         "chunk_start": chunk_start,
                         "chunk_end": chunk_end,
-                        "chunk_index": j if needs_splitting else 0,
-                        "total_chunks": len(date_chunks) if needs_splitting else 1,
+                        "chunk_index": j if should_split else 0,
+                        "total_chunks": len(date_chunks) if should_split else 1,
                         "status": None,
                         "file_path": None
                     }
@@ -323,7 +338,7 @@ class ExportOrchestrator:
                     # Add export detail to the item in metadata
                     item_dict['export_details'].append(export_detail)
 
-                    if needs_splitting:
+                    if should_split:
                         self.logger.info(
                             f"[{i + 1}/{len(filtered_items)}][{j + 1}/{len(date_chunks)}] "
                             f"Requested export, export id: {export_id}"
@@ -342,7 +357,7 @@ class ExportOrchestrator:
                         "itemId": item_id,
                         "error": str(e),
                         "stage": "export_request",
-                        "chunk_index": j if needs_splitting else None
+                        "chunk_index": j if should_split else None
                     })
 
         # Check if any exports were successfully requested

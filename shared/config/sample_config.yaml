@@ -92,6 +92,10 @@ export:
     # Export format (JSON or CSV)
     format: "JSON"
 
+    # Whether to split date ranges exceeding 6 months into chunks
+    # Set to false to export entire date range in one request
+    split_date_range: true
+
     # Survey filtering and selection
     request:
       # Maximum surveys to process (null for all surveys)
@@ -117,6 +121,10 @@ export:
     # File type for export (CSV or JSON)
     # CSV recommended for wide format analysis
     file_type: "CSV"
+
+    # Whether to split date ranges exceeding 6 months into chunks
+    # Set to false to export entire date range in one request
+    split_date_range: true
 
     # Whether to remove personally identifiable information
     # Set to true to exclude PII from exports
@@ -160,6 +168,11 @@ export:
   # (To be implemented in Phase 3)
   # ========================================
   ehr:
+    # Whether to split date ranges exceeding 6 months into chunks
+    # Set to false to export entire date range in one request
+    # For EHR exports, you may want to set this to false for better performance
+    split_date_range: true
+
     # List of participant IDs to export EHR data for
     # Example: [12345, 67890, 11111]
     participant_ids: []

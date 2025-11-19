@@ -7,7 +7,9 @@ from .data_models import (
     ExportRequest,
     ExportStatus,
     ExportMetadata,
-    WideFormatReportRequest
+    WideFormatReportRequest,
+    EHRExportRequest,
+    Participant
 )
 
 __all__ = [
@@ -15,5 +17,7 @@ __all__ = [
     "ExportRequest",
     "ExportStatus",
     "ExportMetadata",
-    "WideFormatReportRequest"
+    "WideFormatReportRequest",
+    "EHRExportRequest",
+    "Participant"
 ] 
