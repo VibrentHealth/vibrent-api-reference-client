@@ -1,11 +1,19 @@
 # Sample Vibrent Health API Client Configuration
 # This file demonstrates all available configuration options
+ # Version: 2.0 (Extensible Architecture)
+#
+# INSTRUCTIONS FOR SETUP:
+# 1. Copy this file to 'vibrent_config.yaml' in the same directory
+# 2. Replace all placeholder URLs with your actual Vibrent Health API endpoints
+# 3. Configure your desired export type in the export.type field
+# 4. Set up authentication credentials in your .env file
+# 5. Adjust export parameters based on your needs
 
 # Environment Configuration
 environment:
   # Default environment to use (staging, production)
   default: "staging"
-  
+
   # Environment-specific configurations
   # IMPORTANT: Replace the placeholder URLs below with your actual Vibrent Health API URLs
   environments:
@@ -20,7 +28,7 @@ environment:
 auth:
   # Request timeout in seconds
   timeout: 30
-  
+
   # Token refresh buffer time in seconds (refresh token 5 minutes before expiry)
   refresh_buffer: 300
 
@@ -29,75 +37,200 @@ api:
   # Request timeout for API calls
   timeout: 30
 
+  # Debug logging for HTTP requests/responses
+  # When enabled, logs full request and response details including headers and body
+  # Very useful for debugging API call failures
+  # WARNING: Logs will contain credentials and tokens - use in secure environments only
+  debug_logging: false
+
 # Export Configuration
 export:
-  # Date range configuration
+  # NEW in v2.0: Export type selector
+  # Options: survey, survey_v2, ehr, device
+  # Change this to switch between different export types
+  type: "survey"
+
+  # Common settings for all export types
+  # These apply regardless of export type selected
+
+  # Default date range configuration
   date_range:
-    # Option 1: Relative date range (days back from today)
+    # Default days back for relative date range
     default_days_back: 30
-    
-    # Option 2: Absolute date range (ISO format: YYYY-MM-DD)
+
+    # Support for absolute date ranges (ISO format: YYYY-MM-DD)
+    # If specified, these will override the relative date range
     # Uncomment and set these to use absolute dates instead of relative
     # absolute_start_date: "2024-01-01"
     # absolute_end_date: "2024-12-31"
-  
-  # Export format (JSON, CSV)
-  format: "JSON"
-  
-  # Export request configuration
-  request:
-    # Maximum surveys to process (null for all surveys)
-    max_surveys: null
-    
-    # Specific survey IDs to export (null for all surveys)
-    # Example: [123, 456, 789] - only export these specific surveys
-    # Precedence: survey_ids > exclude_survey_ids > max_surveys
-    survey_ids: null
-    
-    # Survey IDs to exclude from export (null for no exclusions)
-    # Example: [999, 888, 777] - exclude these specific surveys
-    # Note: This is ignored if survey_ids is specified
-    exclude_survey_ids: null
-  
-  # Export monitoring configuration
+
+  # Export monitoring configuration (applies to all export types)
   monitoring:
     # Polling interval in seconds
     polling_interval: 10
-    
+
     # Maximum wait time in seconds (null for unlimited)
     max_wait_time: null
-    
+
     # Whether to continue processing if some exports fail
     continue_on_failure: true
+
+  # Legacy format config (for backward compatibility with old structure)
+  format: "JSON"
+
+  # Legacy request config (for backward compatibility)
+  request:
+    max_surveys: null
+    survey_ids: null
+    exclude_survey_ids: null
+
+  # ========================================
+  # Survey V1 Export Configuration
+  # Used when export.type = "survey"
+  # ========================================
+  survey:
+    # Export format (JSON or CSV)
+    format: "JSON"
+
+    # Survey filtering and selection
+    request:
+      # Maximum surveys to process (null for all surveys)
+      max_surveys: null
+
+      # Specific survey IDs to export (null for all surveys)
+      # If specified, only these surveys will be exported
+      # Precedence: survey_ids > exclude_survey_ids > max_surveys
+      # Example: [123, 456, 789] - only export these specific surveys
+      survey_ids: null
+
+      # Survey IDs to exclude from export (null for no exclusions)
+      # Example: [999, 888, 777] - exclude these specific surveys
+      # Note: This is ignored if survey_ids is specified
+      exclude_survey_ids: null
+
+  # ========================================
+  # Survey V2 Export Configuration
+  # Used when export.type = "survey_v2"
+  # Supports wide format, PII removal, and advanced options
+  # ========================================
+  survey_v2:
+    # File type for export (CSV or JSON)
+    # CSV recommended for wide format analysis
+    file_type: "CSV"
+
+    # Whether to remove personally identifiable information
+    # Set to true to exclude PII from exports
+    remove_pii: false
+
+    # Export only completed survey responses
+    # Set to false to include incomplete responses
+    completed_only: true
+
+    # Include data from withdrawn users
+    # Set to false to exclude withdrawn users
+    include_withdrawn_user: true
+
+    # Combine multiple values for multiple choice questions
+    # Set to false to keep them separate
+    combine_values_for_multiple_choices: true
+
+    # Choice value format for multiple choice questions
+    # Options:
+    #   - VALUE_ONLY: Just the numeric value (e.g., "1")
+    #   - TEXT_ONLY: Just the text (e.g., "Strongly Agree")
+    #   - VALUE_AND_TEXT: Both (e.g., "1 - Strongly Agree")
+    choice_value_format: "VALUE_AND_TEXT"
+
+    # User type filtering
+    # Options:
+    #   - REAL_ONLY: Only real participants
+    #   - TEST_ONLY: Only test accounts
+    #   - ALL_USERS: Both real and test users
+    user_type: "REAL_ONLY"
+
+    # Survey filtering and selection (same as V1)
+    request:
+      max_surveys: null
+      survey_ids: null
+      exclude_survey_ids: null
+
+  # ========================================
+  # EHR Export Configuration
+  # Used when export.type = "ehr"
+  # (To be implemented in Phase 3)
+  # ========================================
+  ehr:
+    # List of participant IDs to export EHR data for
+    # Example: [12345, 67890, 11111]
+    participant_ids: []
+
+    # Maximum number of participants to export (null for all)
+    max_participants: null
+
+    # Participant IDs to exclude from export
+    exclude_participant_ids: null
+
+  # ========================================
+  # Device Data Export Configuration
+  # Used when export.type = "device"
+  # (Future implementation)
+  # ========================================
+  device:
+    # Types of devices to export data for
+    # Example: ['fitbit', 'apple_watch', 'garmin']
+    device_types: []
+
+    # Participant IDs (null for all)
+    participant_ids: null
+
+    # Maximum devices to export
+    max_devices: null
 
 # Output Configuration
 output:
   # Base directory for all exports
   base_directory: "output"
-  
+
   # Survey exports directory (will be created under base_directory)
   survey_exports_dir: "survey_exports"
-  
-  # Whether to extract export files (JSON/CSV) from zip archives based on export.format setting
+
+  # EHR exports directory
+  ehr_exports_dir: "ehr_exports"
+
+  # Device exports directory
+  device_exports_dir: "device_exports"
+
+  # Whether to extract files from zip archives
   extract_files: true
-  
+
   # Whether to remove zip files after extraction
   remove_zip_after_extract: true
-
-
-
-
 
 # Metadata Configuration
 metadata:
   # Whether to save export metadata
   save_metadata: true
-  
+
   # Metadata file name
   filename: "export_metadata.json"
-  
-  # Whether to include survey details in metadata
+
+  # Whether to include survey/item details in metadata
   include_survey_details: true
-  
+
   # Whether to include export status details in metadata
-  include_export_status: true 
+  include_export_status: true
+
+# ========================================
+# Migration Notes (v1.0 -> v2.0)
+# ========================================
+# If you're upgrading from v1.0:
+# 1. Old config still works! Backward compatible.
+# 2. To use new features, set export.type to the desired export type
+# 3. Configure type-specific options in the appropriate section
+# 4. Survey V1 uses export.survey section
+# 5. Survey V2 uses export.survey_v2 section
+#
+# Quick Start:
+# - For Survey V1 (default): export.type = "survey"
+# - For Survey V2 (wide format): export.type = "survey_v2"
+# - For EHR data: export.type = "ehr" (Phase 3) 
