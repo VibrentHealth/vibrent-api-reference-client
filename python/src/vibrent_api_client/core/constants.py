@@ -8,12 +8,20 @@ used throughout the application.
 # API Endpoints
 class APIEndpoints:
     """API endpoint constants"""
-    
+
     # Survey endpoints
     SURVEYS = "/api/ext/forms"
-    
-    # Export endpoints
+
+    # Export endpoints - Survey (v1)
     EXPORT_REQUEST = "/api/ext/export/survey/{survey_id}/request"
+
+    # Export endpoints - Survey (v2) with wide format support
+    EXPORT_REQUEST_V2 = "/api/ext/export/v2/survey/{survey_id}/request"
+
+    # Export endpoints - EHR
+    EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request"
+
+    # Common export endpoints (shared across all export types)
     EXPORT_STATUS = "/api/ext/export/status/{export_id}"
     EXPORT_DOWNLOAD = "/api/ext/export/download/{export_id}"
 
@@ -119,48 +127,67 @@ class ConfigKeys:
     OUTPUT = "output"
     LOGGING = "logging"
     METADATA = "metadata"
-    
+
     # Environment keys
     DEFAULT = "default"
     ENVIRONMENTS = "environments"
     BASE_URL = "base_url"
     TOKEN_URL = "token_url"
-    
+
     # Auth keys
     TIMEOUT = "timeout"
     REFRESH_BUFFER = "refresh_buffer"
-    
+
+    # API keys
+    DEBUG_LOGGING = "debug_logging"
+
     # Export keys
+    TYPE = "type"  # NEW: export type selector
     DATE_RANGE = "date_range"
     FORMAT = "format"
     REQUEST = "request"
     MONITORING = "monitoring"
-    
+
+    # Export type-specific sections
+    SURVEY = "survey"
+    SURVEY_V2 = "survey_v2"
+    EHR = "ehr"
+    DEVICE = "device"
+
     # Date range keys
     DEFAULT_DAYS_BACK = "default_days_back"
     ABSOLUTE_START_DATE = "absolute_start_date"
     ABSOLUTE_END_DATE = "absolute_end_date"
-    
+
     # Request keys
     MAX_SURVEYS = "max_surveys"
     SURVEY_IDS = "survey_ids"
     EXCLUDE_SURVEY_IDS = "exclude_survey_ids"
-    
+
     # Monitoring keys
     POLLING_INTERVAL = "polling_interval"
     MAX_WAIT_TIME = "max_wait_time"
     CONTINUE_ON_FAILURE = "continue_on_failure"
-    
+
     # Output keys
     BASE_DIRECTORY = "base_directory"
     SURVEY_EXPORTS_DIR = "survey_exports_dir"
+    EHR_EXPORTS_DIR = "ehr_exports_dir"
+    DEVICE_EXPORTS_DIR = "device_exports_dir"
     EXTRACT_FILES = "extract_files"
     REMOVE_ZIP_AFTER_EXTRACT = "remove_zip_after_extract"
-    
 
-    
     # Metadata keys
     SAVE_METADATA = "save_metadata"
     FILENAME = "filename"
     INCLUDE_SURVEY_DETAILS = "include_survey_details"
-    INCLUDE_EXPORT_STATUS = "include_export_status" 
+    INCLUDE_EXPORT_STATUS = "include_export_status"
+
+
+# Export Type Constants
+class ExportType:
+    """Export type identifiers"""
+    SURVEY = "survey"
+    SURVEY_V2 = "survey_v2"
+    EHR = "ehr"
+    DEVICE = "device" 

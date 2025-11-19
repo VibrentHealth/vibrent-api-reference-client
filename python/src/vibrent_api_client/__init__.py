@@ -12,20 +12,46 @@ IMPORTANT DISCLAIMERS:
 - Users are responsible for their own implementation and deployment
 """
 
+# Core components
 from .core.auth import AuthenticationManager
 from .core.client import VibrentHealthAPIClient
-from .core.exporter import SurveyDataExporter
-from .models import Survey, ExportRequest, ExportStatus, ExportMetadata
+from .core.config import ConfigManager
 
-__version__ = "1.0.0"
+# New architecture (v2.0+)
+from .core.base_exporter import BaseExporter
+from .core.orchestrator import ExportOrchestrator
+from .core.exporter_factory import ExporterFactory
+
+# Legacy components (deprecated but maintained for backward compatibility)
+from .core.exporter import SurveyDataExporter
+
+# Exporters
+from .exporters import SurveyExporter, SurveyV2Exporter
+
+# Models
+from .models import Survey, ExportRequest, ExportStatus, ExportMetadata, WideFormatReportRequest
+
+__version__ = "2.0.0"
 __author__ = "Vibrent Health"
 
 __all__ = [
+    # Core
     "VibrentHealthAPIClient",
-    "SurveyDataExporter", 
     "AuthenticationManager",
+    "ConfigManager",
+    # New architecture
+    "BaseExporter",
+    "ExportOrchestrator",
+    "ExporterFactory",
+    # Exporters
+    "SurveyExporter",
+    "SurveyV2Exporter",
+    # Legacy (deprecated)
+    "SurveyDataExporter",
+    # Models
     "Survey",
     "ExportRequest",
     "ExportStatus",
-    "ExportMetadata"
+    "ExportMetadata",
+    "WideFormatReportRequest"
 ] 
