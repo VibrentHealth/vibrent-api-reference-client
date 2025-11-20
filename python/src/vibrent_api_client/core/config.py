@@ -77,10 +77,11 @@ class ConfigManager:
         return default_config_path
     
     def _create_default_config(self, config_path: str) -> None:
-        """Create a default configuration file"""
+        """Create a default configuration file with v3.0 flat structure"""
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        
+
         default_config = {
+            # Universal configuration
             ConfigKeys.ENVIRONMENT: {
                 ConfigKeys.DEFAULT: Environment.STAGING,
                 ConfigKeys.ENVIRONMENTS: {
@@ -102,61 +103,11 @@ class ConfigManager:
                 ConfigKeys.TIMEOUT: TimeConstants.DEFAULT_TIMEOUT,
                 ConfigKeys.DEBUG_LOGGING: False
             },
-            ConfigKeys.EXPORT: {
-                ConfigKeys.TYPE: "survey",  # Export type: survey, survey_v2, ehr, etc.
-                ConfigKeys.DATE_RANGE: {
-                    ConfigKeys.DEFAULT_DAYS_BACK: 30,
-                    ConfigKeys.ABSOLUTE_START_DATE: None,
-                    ConfigKeys.ABSOLUTE_END_DATE: None
-                },
-                ConfigKeys.FORMAT: ExportFormat.JSON,
-                ConfigKeys.REQUEST: {
-                    ConfigKeys.MAX_SURVEYS: None,
-                    ConfigKeys.SURVEY_IDS: None,
-                    ConfigKeys.EXCLUDE_SURVEY_IDS: None
-                },
-                ConfigKeys.MONITORING: {
-                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
-                    ConfigKeys.MAX_WAIT_TIME: None,
-                    ConfigKeys.CONTINUE_ON_FAILURE: True
-                },
-                # Survey V1-specific configuration
-                ConfigKeys.SURVEY: {
-                    ConfigKeys.FORMAT: ExportFormat.JSON,
-                    "split_date_range": True,
-                    ConfigKeys.REQUEST: {
-                        ConfigKeys.MAX_SURVEYS: None,
-                        ConfigKeys.SURVEY_IDS: None,
-                        ConfigKeys.EXCLUDE_SURVEY_IDS: None
-                    }
-                },
-                # Survey V2-specific configuration (wide format, advanced options)
-                ConfigKeys.SURVEY_V2: {
-                    "file_type": "CSV",
-                    "split_date_range": True,
-                    "remove_pii": False,
-                    "completed_only": True,
-                    "include_withdrawn_user": True,
-                    "combine_values_for_multiple_choices": True,
-                    "choice_value_format": "VALUE_AND_TEXT",  # VALUE_ONLY, TEXT_ONLY, VALUE_AND_TEXT
-                    "user_type": "REAL_ONLY",  # REAL_ONLY, TEST_ONLY, ALL_USERS
-                    ConfigKeys.REQUEST: {
-                        ConfigKeys.MAX_SURVEYS: None,
-                        ConfigKeys.SURVEY_IDS: None,
-                        ConfigKeys.EXCLUDE_SURVEY_IDS: None
-                    }
-                },
-                # EHR-specific configuration
-                ConfigKeys.EHR: {
-                    "split_date_range": True,
-                    "participant_ids": [],
-                    "max_participants": None,
-                    "exclude_participant_ids": None
-                }
-            },
             ConfigKeys.OUTPUT: {
                 ConfigKeys.BASE_DIRECTORY: FileConstants.OUTPUT_BASE_DIR,
                 ConfigKeys.SURVEY_EXPORTS_DIR: FileConstants.SURVEY_EXPORTS_DIR,
+                "ehr_exports_dir": "ehr_exports",
+                "device_exports_dir": "device_exports",
                 ConfigKeys.EXTRACT_FILES: True,
                 ConfigKeys.REMOVE_ZIP_AFTER_EXTRACT: True
             },
@@ -165,13 +116,97 @@ class ConfigManager:
                 ConfigKeys.FILENAME: "export_metadata.json",
                 ConfigKeys.INCLUDE_SURVEY_DETAILS: True,
                 ConfigKeys.INCLUDE_EXPORT_STATUS: True
+            },
+            # Survey V1 Export Configuration
+            "survey_export": {
+                "use_date_range": True,
+                ConfigKeys.DATE_RANGE: {
+                    ConfigKeys.DEFAULT_DAYS_BACK: 7,
+                    ConfigKeys.ABSOLUTE_START_DATE: None,
+                    ConfigKeys.ABSOLUTE_END_DATE: None
+                },
+                "split_date_range": True,
+                ConfigKeys.FORMAT: ExportFormat.JSON,
+                ConfigKeys.MONITORING: {
+                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
+                    ConfigKeys.MAX_WAIT_TIME: None,
+                    ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                ConfigKeys.REQUEST: {
+                    ConfigKeys.MAX_SURVEYS: None,
+                    ConfigKeys.SURVEY_IDS: None,
+                    ConfigKeys.EXCLUDE_SURVEY_IDS: None
+                }
+            },
+            # Survey V2 Export Configuration
+            "survey_v2_export": {
+                "use_date_range": True,
+                ConfigKeys.DATE_RANGE: {
+                    ConfigKeys.DEFAULT_DAYS_BACK: 30,
+                    ConfigKeys.ABSOLUTE_START_DATE: None,
+                    ConfigKeys.ABSOLUTE_END_DATE: None
+                },
+                "split_date_range": True,
+                "file_type": "CSV",
+                "remove_pii": False,
+                "completed_only": True,
+                "include_withdrawn_user": True,
+                "combine_values_for_multiple_choices": True,
+                "choice_value_format": "VALUE_AND_TEXT",
+                "user_type": "REAL_ONLY",
+                ConfigKeys.MONITORING: {
+                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
+                    ConfigKeys.MAX_WAIT_TIME: None,
+                    ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                ConfigKeys.REQUEST: {
+                    ConfigKeys.MAX_SURVEYS: None,
+                    ConfigKeys.SURVEY_IDS: None,
+                    ConfigKeys.EXCLUDE_SURVEY_IDS: None
+                }
+            },
+            # EHR Export Configuration
+            "ehr_export": {
+                "use_date_range": True,
+                ConfigKeys.DATE_RANGE: {
+                    ConfigKeys.DEFAULT_DAYS_BACK: 1460,  # 4 years
+                    ConfigKeys.ABSOLUTE_START_DATE: None,
+                    ConfigKeys.ABSOLUTE_END_DATE: None
+                },
+                "split_date_range": False,
+                ConfigKeys.MONITORING: {
+                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
+                    ConfigKeys.MAX_WAIT_TIME: None,
+                    ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                "participant_ids": [],
+                "max_participants": None,
+                "exclude_participant_ids": None
+            },
+            # Device Export Configuration
+            "device_export": {
+                "use_date_range": True,
+                ConfigKeys.DATE_RANGE: {
+                    ConfigKeys.DEFAULT_DAYS_BACK: 90,
+                    ConfigKeys.ABSOLUTE_START_DATE: None,
+                    ConfigKeys.ABSOLUTE_END_DATE: None
+                },
+                "split_date_range": True,
+                ConfigKeys.MONITORING: {
+                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
+                    ConfigKeys.MAX_WAIT_TIME: None,
+                    ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                "device_types": [],
+                "participant_ids": None,
+                "max_devices": None
             }
         }
-        
+
         with open(config_path, 'w') as f:
             yaml.dump(default_config, f, default_flow_style=False, indent=2)
-        
-        self.logger.info(f"Created default configuration file: {config_path}")
+
+        self.logger.info(f"Created default configuration file (v3.0): {config_path}")
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
@@ -199,12 +234,11 @@ class ConfigManager:
             )
     
     def _validate_config(self) -> None:
-        """Validate the loaded configuration"""
+        """Validate the loaded configuration for v3.0 flat structure"""
         required_sections = [
             ConfigKeys.ENVIRONMENT,
             ConfigKeys.AUTH,
             ConfigKeys.API,
-            ConfigKeys.EXPORT,
             ConfigKeys.OUTPUT
         ]
         
@@ -270,24 +304,33 @@ class ConfigManager:
         
         return env_config
     
-    def get_date_range(self) -> Dict[str, int]:
+    def get_date_range(self, export_type: str = None) -> Dict[str, int]:
         """
         Get the configured date range for exports
-        
+
+        Args:
+            export_type: The export type (survey, ehr, survey_v2, device).
+                        If None, tries to use legacy config structure for backward compatibility.
+
         Returns:
             Dictionary with start_time and end_time in milliseconds
         """
-        date_config = self.get(f"{ConfigKeys.EXPORT}.{ConfigKeys.DATE_RANGE}")
-        
+        if export_type:
+            # New flat structure: read from {export_type}_export.date_range
+            date_config = self.get(f"{export_type}_export.date_range", {})
+        else:
+            # Legacy structure: read from export.date_range (backward compatibility)
+            date_config = self.get(f"{ConfigKeys.EXPORT}.{ConfigKeys.DATE_RANGE}", {})
+
         # Check for absolute dates first
         absolute_start = date_config.get(ConfigKeys.ABSOLUTE_START_DATE)
         absolute_end = date_config.get(ConfigKeys.ABSOLUTE_END_DATE)
-        
+
         if absolute_start and absolute_end:
             # Convert ISO date strings to timestamps
             start_dt = datetime.fromisoformat(absolute_start)
             end_dt = datetime.fromisoformat(absolute_end)
-            
+
             start_time = int(start_dt.timestamp() * 1000)
             end_time = int(end_dt.timestamp() * 1000)
         else:
@@ -295,21 +338,49 @@ class ConfigManager:
             days_back = date_config.get(ConfigKeys.DEFAULT_DAYS_BACK, 30)
             end_time = int(datetime.now(timezone.utc).timestamp() * 1000)
             start_time = end_time - (days_back * TimeConstants.MS_PER_DAY)
-        
+
         return {
             "start_time": start_time,
             "end_time": end_time
         }
+
+    def should_use_date_range(self, export_type: str) -> bool:
+        """
+        Check if date range should be used for the given export type
+
+        Args:
+            export_type: The export type (survey, ehr, survey_v2, device)
+
+        Returns:
+            True if date range should be included in requests, False otherwise
+        """
+        return self.get(f"{export_type}_export.use_date_range", True)
+
+    def get_export_config(self, export_type: str) -> Dict[str, Any]:
+        """
+        Get the complete configuration for a specific export type
+
+        Args:
+            export_type: The export type (survey, ehr, survey_v2, device)
+
+        Returns:
+            Dictionary with all configuration for the export type
+        """
+        return self.get(f"{export_type}_export", {})
     
     def get_survey_filter(self) -> Dict[str, Any]:
         """
         Get survey filtering configuration
-        
+
+        DEPRECATED: This method is for backward compatibility only.
+        Use get_export_config('survey')['request'] instead.
+
         Returns:
             Dictionary with survey filtering settings
         """
-        request_config = self.get(f"{ConfigKeys.EXPORT}.{ConfigKeys.REQUEST}")
-        
+        # Use new flat structure - survey_export.request
+        request_config = self.get("survey_export.request", {})
+
         return {
             "max_surveys": request_config.get(ConfigKeys.MAX_SURVEYS),
             "survey_ids": request_config.get(ConfigKeys.SURVEY_IDS),

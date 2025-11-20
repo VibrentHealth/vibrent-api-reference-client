@@ -66,7 +66,7 @@ def main():
         config_manager = ConfigManager(config_file=args.config_file)
 
         # Setup logging
-        setup_logging('DEBUG')
+        setup_logging()
         logger = logging.getLogger(__name__)
 
         # Print header
