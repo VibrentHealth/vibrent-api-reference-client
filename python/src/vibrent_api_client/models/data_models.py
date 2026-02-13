@@ -227,6 +227,110 @@ class Participant:
 
 
 @dataclass
+class DeviceDataExportRequest:
+    """
+    Device data export request.
+
+    Used for requesting device data exports for a participant with optional filtering
+    by device type, data type, and date range.
+    """
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
+    deviceTypes: Optional[List[str]] = None
+    dataTypes: Optional[List[str]] = None
+    manifestOnly: bool = False
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create DeviceDataExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': None,
+            'dateTo': None,
+            'deviceTypes': None,
+            'dataTypes': None,
+            'manifestOnly': False
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary, excluding None values"""
+        result = {}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        if self.deviceTypes is not None:
+            result['deviceTypes'] = self.deviceTypes
+        if self.dataTypes is not None:
+            result['dataTypes'] = self.dataTypes
+        result['manifestOnly'] = self.manifestOnly
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+class DeviceType:
+    """
+    Device data source types (source_mapping).
+
+    These map to internal device sources for device data exports.
+    """
+    FITBIT = "FITBIT"
+    GARMIN = "GARMIN"
+    APPLE_HEALTHKIT = "APPLE_HEALTHKIT"
+
+    @classmethod
+    def get_all_types(cls) -> List[str]:
+        """Get list of all device types"""
+        return [cls.FITBIT, cls.GARMIN, cls.APPLE_HEALTHKIT]
+
+    @classmethod
+    def is_valid(cls, device_type: str) -> bool:
+        """Check if device type is valid"""
+        return device_type in cls.get_all_types()
+
+
+class DeviceDataType:
+    """
+    Logical grouping of device data types (datatype_mapping).
+
+    Each data type maps to source-specific payload types.
+    """
+    SLEEP = "SLEEP"
+    STEPS = "STEPS"
+    HEART_RATE = "HEART_RATE"
+    ACTIVITY = "ACTIVITY"
+    DISTANCE = "DISTANCE"
+    RESPIRATORY = "RESPIRATORY"
+    STRESS = "STRESS"
+    DAILY_SUMMARY = "DAILY_SUMMARY"
+
+    @classmethod
+    def get_all_types(cls) -> List[str]:
+        """Get list of all data types"""
+        return [
+            cls.SLEEP,
+            cls.STEPS,
+            cls.HEART_RATE,
+            cls.ACTIVITY,
+            cls.DISTANCE,
+            cls.RESPIRATORY,
+            cls.STRESS,
+            cls.DAILY_SUMMARY
+        ]
+
+    @classmethod
+    def is_valid(cls, data_type: str) -> bool:
+        """Check if data type is valid"""
+        return data_type in cls.get_all_types()
+
+
+@dataclass
 class ExportMetadata:
     """Metadata for the export session"""
     export_session_id: str

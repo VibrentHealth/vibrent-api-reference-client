@@ -19,6 +19,7 @@ from ..models import (
     ExportStatus,
     WideFormatReportRequest,
     EHRExportRequest,
+    DeviceDataExportRequest,
     Participant
 )
 from ..utils.helpers import safe_from_dict
@@ -251,6 +252,53 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"EHR export requested successfully: {export_id}")
+        return export_id
+
+    def request_device_export(self, participant_id: int, export_request: DeviceDataExportRequest) -> str:
+        """
+        Request device data export for a specific participant.
+
+        This API endpoint allows you to export device data (Fitbit, Garmin, Apple HealthKit)
+        for individual participants with optional filtering by device type, data type, and date range.
+
+        Args:
+            participant_id: The participant's unique identifier
+            export_request: DeviceDataExportRequest with filters
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Example:
+            >>> request = DeviceDataExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     deviceTypes=["FITBIT", "GARMIN"],
+            ...     dataTypes=["SLEEP", "HEART_RATE"],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_device_export(12345, request)
+        """
+        self.logger.info(f"Requesting device data export for participant {participant_id}")
+        self.logger.debug(
+            f"Filters - Date range: {export_request.dateFrom} to {export_request.dateTo}, "
+            f"Device types: {export_request.deviceTypes}, "
+            f"Data types: {export_request.dataTypes}, "
+            f"Manifest only: {export_request.manifestOnly}"
+        )
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.DEVICE_EXPORT_REQUEST.format(participant_id=participant_id),
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Device data export requested successfully: {export_id}")
         return export_id
 
     def get_export_status(self, export_id: str) -> ExportStatus:

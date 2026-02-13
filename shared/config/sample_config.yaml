@@ -94,6 +94,7 @@ survey_export:
 
   date_range:
     # Use relative date range (last N days)
+    # Recommended: 7-30 days for survey data
     default_days_back: 7
 
     # OR use absolute date range (these override default_days_back if specified)
@@ -103,10 +104,12 @@ survey_export:
 
   # Date range splitting
   # Set to false to export entire date range in one request (even if > 6 months)
+  # Recommended: true for large date ranges to avoid timeouts
   split_date_range: true
 
   # Export format
-  format: "JSON"  # JSON or CSV
+  # Options: JSON or CSV
+  format: "JSON"
 
   # Monitoring configuration
   monitoring:
@@ -145,34 +148,35 @@ survey_v2_export:
   use_date_range: true
 
   date_range:
-    # Use relative date range
+    # Use relative date range (last N days)
     default_days_back: 30
 
-    # OR use absolute date range
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
     # absolute_start_date: "2024-01-01"
     # absolute_end_date: "2024-12-31"
 
   # Date range splitting
+  # Set to false to export entire date range in one request (even if > 6 months)
   split_date_range: true
 
-  # File type for export (CSV or JSON)
-  # CSV recommended for wide format analysis
+  # File type and PII
+  # File type for export (CSV or JSON) - CSV recommended for wide format analysis
   file_type: "CSV"
 
   # Whether to remove personally identifiable information
   # Set to true to exclude PII from exports
   remove_pii: false
 
-  # Export only completed survey responses
-  # Set to false to include incomplete responses
+  # Response filtering
+  # Export only completed survey responses (set to false to include incomplete responses)
   completed_only: true
 
-  # Include data from withdrawn users
-  # Set to false to exclude withdrawn users
+  # Include data from withdrawn users (set to false to exclude withdrawn users)
   include_withdrawn_user: true
 
-  # Combine multiple values for multiple choice questions
-  # Set to false to keep them separate
+  # Multiple choice formatting
+  # Combine multiple values for multiple choice questions (set to false to keep them separate)
   combine_values_for_multiple_choices: true
 
   # Choice value format for multiple choice questions
@@ -191,14 +195,28 @@ survey_v2_export:
 
   # Monitoring configuration
   monitoring:
+    # Polling interval in seconds
     polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
     max_wait_time: null
+
+    # Whether to continue processing if some exports fail
     continue_on_failure: true
 
-  # Survey filtering (same as V1)
+  # Survey filtering
   request:
+    # Maximum surveys to process (null for all surveys)
     max_surveys: null
+
+    # Specific survey IDs to export (null for all surveys)
+    # If specified, only these surveys will be exported
+    # Example: [123, 456, 789]
     survey_ids: null
+
+    # Survey IDs to exclude from export (null for no exclusions)
+    # Example: [999, 888, 777]
+    # Note: This is ignored if survey_ids is specified
     exclude_survey_ids: null
 
 # ============================================
@@ -212,30 +230,40 @@ ehr_export:
   use_date_range: true
 
   date_range:
+    # Use relative date range (last N days)
+    # Recommended: 1460 days (4 years) for EHR data
+    default_days_back: 1460
+
+    # OR use absolute date range (these override default_days_back if specified)
     # For EHR, typically use absolute dates to get historical data
     # Example: 4 years of EHR data
-    absolute_start_date: "2020-01-01"
-    absolute_end_date: "2024-12-31"
-
-    # OR use relative date range (uncomment to use)
-    # default_days_back: 1460  # 4 years
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2020-01-01"
+    # absolute_end_date: "2024-12-31"
 
   # Date range splitting
-  # For EHR exports, you may want to set this to false for better performance
+  # For EHR exports, typically set this to false for better performance
+  # Set to false to export entire date range in one request (even if > 6 months)
   split_date_range: false
 
   # Monitoring configuration
   monitoring:
+    # Polling interval in seconds
     polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
     max_wait_time: null
+
+    # Whether to continue processing if some exports fail
     continue_on_failure: true
 
   # Participant filtering
   # List of participant IDs to export EHR data for
   # Example: [12345, 67890, 11111]
+  # IMPORTANT: At least one participant ID is required
   participant_ids: []
 
-  # Maximum number of participants to export (null for all)
+  # Maximum number of participants to export (null for all specified)
   max_participants: null
 
   # Participant IDs to exclude from export
@@ -243,40 +271,104 @@ ehr_export:
 
 # ============================================
 # DEVICE DATA EXPORT CONFIGURATION
-# Wearable/device data export (future implementation)
+# Wearable/device data export
 # Used when: python run_export.py --export-type device
 # ============================================
 device_export:
   # Date range configuration
+  # Set use_date_range to false to get ALL device data without date filtering
   use_date_range: true
 
   date_range:
-    # Last 3 months of device data
+    # Use relative date range (last N days)
+    # Recommended: 90 days (3 months) for device data
     default_days_back: 90
 
-    # OR use absolute dates
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
     # absolute_start_date: "2024-01-01"
     # absolute_end_date: "2024-12-31"
 
   # Date range splitting
+  # Set to true to split large date ranges (>6 months) into chunks
   split_date_range: true
 
   # Monitoring configuration
   monitoring:
+    # Polling interval in seconds
     polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
     max_wait_time: null
+
+    # Whether to continue processing if some exports fail
     continue_on_failure: true
 
-  # Device filtering
-  # Types of devices to export data for
-  # Example: ['fitbit', 'apple_watch', 'garmin']
+  # Participant filtering
+  # List of participant IDs to export device data for
+  # Example: [12345, 67890, 11111]
+  # IMPORTANT: At least one participant ID is required
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  exclude_participant_ids: null
+
+  # Device type filtering (source_mapping)
+  # Filter by device data sources. Leave empty [] or null to export from all device types.
+  # Supported values:
+  #   - FITBIT: Fitbit devices
+  #   - GARMIN: Garmin devices
+  #   - APPLE_HEALTHKIT: Apple HealthKit (internally uses APPLE_HEALTHKIT_V2)
+  # Example: ["FITBIT", "GARMIN"] - only export Fitbit and Garmin data
   device_types: []
 
-  # Participant IDs (null for all)
-  participant_ids: null
+  # Data type filtering (datatype_mapping - logical grouping)
+  # Filter by specific data types. Leave empty [] or null to export all data types.
+  # Each data type maps to source-specific payload types.
+  # Supported values:
+  #   - SLEEP: Sleep data
+  #       * FITBIT: DAILY_SLEEP_SUMMARY
+  #       * GARMIN: SLEEP_SUMMARY
+  #       * APPLE_HEALTHKIT: SLEEP_ANALYSIS, SLEEP_CHANGES
+  #   - STEPS: Step count data
+  #       * FITBIT: INTRADAY_STEPS
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: STEP_COUNT, WALKING_STEP_LENGTH
+  #   - HEART_RATE: Heart rate data
+  #       * FITBIT: HEARTRATE
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: HEART_RATE, HEART_RATE_VARIABILITY, RESTING_HEART_RATE, etc.
+  #   - ACTIVITY: Activity/exercise data
+  #       * FITBIT: DAILY_ACTIVITY_SUMMARY
+  #       * GARMIN: ACTIVITY_SUMMARY, ACTIVITY_DETAILS_SUMMARY
+  #       * APPLE_HEALTHKIT: ACTIVE_ENERGY_BURNED, WORKOUTS, VO2_MAX, etc.
+  #   - DISTANCE: Distance data
+  #       * FITBIT: not available
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: DISTANCE_WALKING_RUNNING, DISTANCE_CYCLING, etc.
+  #   - RESPIRATORY: Respiratory data
+  #       * FITBIT: not available
+  #       * GARMIN: RESPIRATION, PULSE_OX
+  #       * APPLE_HEALTHKIT: RESPIRATORY_RATE, OXYGEN_SATURATION, etc.
+  #   - STRESS: Stress data
+  #       * FITBIT: not available
+  #       * GARMIN: STRESS_DETAILS, HRV_SUMMARY
+  #       * APPLE_HEALTHKIT: not available
+  #   - DAILY_SUMMARY: Daily summary data
+  #       * FITBIT: not available
+  #       * GARMIN: DAILY_SUMMARY, HEALTH_SNAPSHOT, EPOCH
+  #       * APPLE_HEALTHKIT: not available
+  # Example: ["SLEEP", "HEART_RATE"] - only export sleep and heart rate data
+  data_types: []
 
-  # Maximum devices to export
-  max_devices: null
+  # Manifest only export
+  # If true, export only manifest metadata without full event data files
+  # If false, export full data files (default)
+  # Manifest-only exports are useful for quickly checking what data is available
+  manifest_only: false
 
 # ========================================
 # Migration Notes (v2.0 -> v3.0)

@@ -21,6 +21,9 @@ class APIEndpoints:
     # Export endpoints - EHR
     EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request"
 
+    # Export endpoints - Device
+    DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request"
+
     # Common export endpoints (shared across all export types)
     EXPORT_STATUS = "/api/ext/export/status/{export_id}"
     EXPORT_DOWNLOAD = "/api/ext/export/download/{export_id}"
