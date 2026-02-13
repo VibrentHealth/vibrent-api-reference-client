@@ -10,6 +10,7 @@ from .data_models import (
     WideFormatReportRequest,
     EHRExportRequest,
     DeviceDataExportRequest,
+    ParticipantProfilesExportRequest,
     Participant,
     DeviceType,
     DeviceDataType
@@ -23,6 +24,7 @@ __all__ = [
     "WideFormatReportRequest",
     "EHRExportRequest",
     "DeviceDataExportRequest",
+    "ParticipantProfilesExportRequest",
     "Participant",
     "DeviceType",
     "DeviceDataType"

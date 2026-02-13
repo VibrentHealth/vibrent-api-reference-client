@@ -20,6 +20,7 @@ from ..models import (
     WideFormatReportRequest,
     EHRExportRequest,
     DeviceDataExportRequest,
+    ParticipantProfilesExportRequest,
     Participant
 )
 from ..utils.helpers import safe_from_dict
@@ -299,6 +300,59 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"Device data export requested successfully: {export_id}")
+        return export_id
+
+    def request_participant_profiles_export(self, export_request: ParticipantProfilesExportRequest) -> str:
+        """
+        Request participant profiles (user properties) export.
+
+        This API endpoint exports participant profile/user property data. Unlike other
+        export endpoints, this is a batch export that can export multiple participants
+        in a single request.
+
+        Args:
+            export_request: ParticipantProfilesExportRequest with participant IDs
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports ALL participants in the authenticated program
+            - participantIds with values: exports only specified participants (max 1000)
+            - participantIds must be strings per API contract
+
+        Example:
+            >>> # Export specific participants
+            >>> request = ParticipantProfilesExportRequest(
+            ...     participantIds=["12345", "67890", "11111"]
+            ... )
+            >>> export_id = client.request_participant_profiles_export(request)
+            >>>
+            >>> # Export all participants
+            >>> request = ParticipantProfilesExportRequest(participantIds=None)
+            >>> export_id = client.request_participant_profiles_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting participant profiles export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting all participants in the program")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.PARTICIPANT_PROFILES_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Participant profiles export requested successfully: {export_id}")
         return export_id
 
     def get_export_status(self, export_id: str) -> ExportStatus:

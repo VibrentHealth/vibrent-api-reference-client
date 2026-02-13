@@ -62,6 +62,9 @@ output:
   # Device exports directory
   device_exports_dir: "device_exports"
 
+  # Participant profiles exports directory
+  participant_profiles_exports_dir: "participant_profiles_exports"
+
   # Whether to extract files from zip archives
   extract_files: true
 
@@ -369,6 +372,49 @@ device_export:
   # If false, export full data files (default)
   # Manifest-only exports are useful for quickly checking what data is available
   manifest_only: false
+
+# ============================================
+# PARTICIPANT PROFILES EXPORT CONFIGURATION
+# User properties/participant profile data export
+# Used when: python run_export.py --export-type participant_profiles
+# ============================================
+participant_profiles_export:
+  # Participant profiles export does not use date ranges
+  # Always exports current participant profile/user property data
+  use_date_range: false
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if export fails
+    continue_on_failure: true
+
+  # Participant filtering
+  # IMPORTANT: This is a BATCH export - one request can export multiple participants
+  #
+  # Participant IDs are stored as integers in config but converted to strings for API
+  #
+  # Behavior:
+  #   - Empty list [] or null: Export ALL participants in the authenticated program
+  #   - Non-empty list: Export only specified participants (max 1000 entries per API limit)
+  #
+  # Example: [12345, 67890, 11111, 22222, 33333]
+  # IMPORTANT: At least an empty list is required (for "export all" behavior)
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  # NOTE: API has hard limit of 1000 participants per single request
+  # If you have more than 1000 participants, use max_participants to limit
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  # Example: [999, 888, 777] - exclude these specific participants
+  exclude_participant_ids: null
 
 # ========================================
 # Migration Notes (v2.0 -> v3.0)

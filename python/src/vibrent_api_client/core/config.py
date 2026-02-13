@@ -108,6 +108,7 @@ class ConfigManager:
                 ConfigKeys.SURVEY_EXPORTS_DIR: FileConstants.SURVEY_EXPORTS_DIR,
                 "ehr_exports_dir": "ehr_exports",
                 "device_exports_dir": "device_exports",
+                "participant_profiles_exports_dir": "participant_profiles_exports",
                 ConfigKeys.EXTRACT_FILES: True,
                 ConfigKeys.REMOVE_ZIP_AFTER_EXTRACT: True
             },
@@ -200,6 +201,18 @@ class ConfigManager:
                 "device_types": [],
                 "participant_ids": None,
                 "max_devices": None
+            },
+            # Participant Profiles Export Configuration
+            "participant_profiles_export": {
+                "use_date_range": False,  # Participant profiles don't use date ranges
+                ConfigKeys.MONITORING: {
+                    ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,
+                    ConfigKeys.MAX_WAIT_TIME: None,
+                    ConfigKeys.CONTINUE_ON_FAILURE: True
+                },
+                "participant_ids": [],  # Empty = export all participants
+                "max_participants": None,
+                "exclude_participant_ids": None
             }
         }
 

@@ -227,6 +227,44 @@ class Participant:
 
 
 @dataclass
+class ParticipantProfilesExportRequest:
+    """
+    Participant profiles (user properties) export request.
+
+    Used for requesting export of participant profile/user property data.
+    This is a batch export - one request can export multiple participants.
+
+    Special behavior:
+    - null or empty array: export ALL participants in the authenticated program
+    - non-empty array: export only specified participants (max 1000 entries)
+    - participantIds must be strings (not integers), per API contract
+    """
+    participantIds: Optional[List[str]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create ParticipantProfilesExportRequest object from dictionary"""
+        defaults = {
+            'participantIds': None
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary, excluding None values for 'export all' behavior"""
+        result = {}
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
 class DeviceDataExportRequest:
     """
     Device data export request.
