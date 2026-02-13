@@ -11,9 +11,12 @@ from .data_models import (
     EHRExportRequest,
     DeviceDataExportRequest,
     ParticipantProfilesExportRequest,
+    CommunicationEventsExportRequest,
     Participant,
     DeviceType,
-    DeviceDataType
+    DeviceDataType,
+    CommunicationEventSource,
+    CommunicationEventType
 )
 
 __all__ = [
@@ -25,7 +28,10 @@ __all__ = [
     "EHRExportRequest",
     "DeviceDataExportRequest",
     "ParticipantProfilesExportRequest",
+    "CommunicationEventsExportRequest",
     "Participant",
     "DeviceType",
-    "DeviceDataType"
+    "DeviceDataType",
+    "CommunicationEventSource",
+    "CommunicationEventType"
 ] 

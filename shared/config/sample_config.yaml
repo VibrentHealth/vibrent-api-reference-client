@@ -65,6 +65,9 @@ output:
   # Participant profiles exports directory
   participant_profiles_exports_dir: "participant_profiles_exports"
 
+  # Communication events exports directory
+  communication_events_exports_dir: "communication_events_exports"
+
   # Whether to extract files from zip archives
   extract_files: true
 
@@ -415,6 +418,105 @@ participant_profiles_export:
   # Participant IDs to exclude from export
   # Example: [999, 888, 777] - exclude these specific participants
   exclude_participant_ids: null
+
+# ============================================
+# COMMUNICATION EVENTS EXPORT CONFIGURATION
+# Email and SMS communication event data export
+# Used when: python run_export.py --export-type communication_events
+# ============================================
+communication_events_export:
+  # Date range configuration
+  # Set use_date_range to false to export ALL events without date filtering
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Recommended: 30 days for communication events
+    default_days_back: 30
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # Set to false to export entire date range in one request (even if > 6 months)
+  split_date_range: false
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if export fails
+    continue_on_failure: true
+
+  # Participant filtering
+  # IMPORTANT: This is a BATCH export - one request can export events for multiple participants
+  #
+  # Participant IDs are stored as integers in config but converted to strings for API
+  #
+  # Behavior:
+  #   - Empty list [] or null: Export events for ALL participants in the authenticated program
+  #   - Non-empty list: Export events only for specified participants
+  #
+  # Example: [12345, 67890, 11111, 22222, 33333]
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  # Example: [999, 888, 777] - exclude these specific participants
+  exclude_participant_ids: null
+
+  # Event source filtering
+  # Filter by communication platform sources. Leave empty [] or null to export from all sources.
+  # Supported values:
+  #   - ITERABLE: Iterable platform events (email, SMS)
+  #   - SES: Amazon SES (Simple Email Service) events (email only)
+  #   - TWILIO: Twilio platform events (SMS only)
+  # Example: ["ITERABLE", "SES"] - only export Iterable and SES events (email focus)
+  # Example: ["TWILIO"] - only export SMS events from Twilio
+  event_sources: []
+
+  # Event type filtering
+  # Filter by specific event types. Leave empty [] or null to export all event types.
+  #
+  # Email event types:
+  #   - EMAIL_SENT: Email was successfully sent from the platform
+  #   - EMAIL_DELIVERY: Email was delivered to recipient's mailbox
+  #   - EMAIL_OPEN: Recipient opened the email
+  #   - EMAIL_CLICK: Recipient clicked a link in the email
+  #   - EMAIL_BOUNCE: Email bounced (permanent or temporary delivery failure)
+  #   - EMAIL_COMPLAINT: Email was marked as spam by recipient
+  #   - EMAIL_UNSUBSCRIBE: Recipient unsubscribed from emails
+  #   - EMAIL_SEND_SKIP: Email send was skipped (e.g., user unsubscribed, blocked)
+  #
+  # SMS event types:
+  #   - SMS_SEND: SMS message was sent
+  #   - SMS_DELIVERED: SMS was delivered to recipient's device
+  #   - SMS_BOUNCE: SMS failed to deliver
+  #   - SMS_SEND_SKIP: SMS send was skipped
+  #
+  # Other:
+  #   - EVENT_TYPE: Generic event type (rarely used)
+  #
+  # Example use cases:
+  #   - ["EMAIL_OPEN", "EMAIL_CLICK"] - Track email engagement only
+  #   - ["EMAIL_BOUNCE", "EMAIL_COMPLAINT"] - Track email delivery issues only
+  #   - ["SMS_SEND", "SMS_DELIVERED"] - Track SMS delivery only
+  #   - ["EMAIL_SENT", "EMAIL_DELIVERY", "SMS_SEND", "SMS_DELIVERED"] - Track all successful sends
+  event_types: []
+
+  # Manifest only export
+  # If true, export only manifest metadata without full event data files
+  # If false, export full data files (default)
+  # Manifest-only exports are useful for quickly checking what events are available
+  manifest_only: false
 
 # ========================================
 # Migration Notes (v2.0 -> v3.0)

@@ -227,6 +227,165 @@ class Participant:
 
 
 @dataclass
+class CommunicationEventsExportRequest:
+    """
+    Communication events export request.
+
+    Used for requesting export of communication events data (email, SMS) for participants
+    within a specified date range, with optional filtering by event source and type.
+
+    This is a batch export - one request can export events for multiple participants.
+
+    Special behavior:
+    - participantIds null/empty: export for all participants in the program
+    - dateFrom/dateTo optional: defaults to dateFrom=0, dateTo=current time if omitted
+    - eventSources empty/null: export from all sources (ITERABLE, SES, TWILIO)
+    - eventTypes empty/null: export all event types
+    - participantIds must be strings (not integers), per API contract
+    """
+    participantIds: Optional[List[str]] = None
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
+    manifestOnly: bool = False
+    eventSources: Optional[List[str]] = None
+    eventTypes: Optional[List[str]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create CommunicationEventsExportRequest object from dictionary"""
+        defaults = {
+            'participantIds': None,
+            'dateFrom': None,
+            'dateTo': None,
+            'manifestOnly': False,
+            'eventSources': None,
+            'eventTypes': None
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary, excluding None values"""
+        result = {}
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        result['manifestOnly'] = self.manifestOnly
+        if self.eventSources is not None:
+            result['eventSources'] = self.eventSources
+        if self.eventTypes is not None:
+            result['eventTypes'] = self.eventTypes
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+class CommunicationEventSource:
+    """
+    Communication platform sources for event filtering.
+
+    These represent the communication platforms that generate events.
+    """
+    ITERABLE = "ITERABLE"
+    SES = "SES"
+    TWILIO = "TWILIO"
+
+    @classmethod
+    def get_all_sources(cls) -> List[str]:
+        """Get list of all event sources"""
+        return [cls.ITERABLE, cls.SES, cls.TWILIO]
+
+    @classmethod
+    def is_valid(cls, source: str) -> bool:
+        """Check if event source is valid"""
+        return source in cls.get_all_sources()
+
+
+class CommunicationEventType:
+    """
+    Communication event types for filtering.
+
+    These represent specific types of communication events across email, SMS, and other channels.
+    """
+    # Email events
+    EMAIL_SENT = "EMAIL_SENT"
+    EMAIL_DELIVERY = "EMAIL_DELIVERY"
+    EMAIL_OPEN = "EMAIL_OPEN"
+    EMAIL_CLICK = "EMAIL_CLICK"
+    EMAIL_BOUNCE = "EMAIL_BOUNCE"
+    EMAIL_COMPLAINT = "EMAIL_COMPLAINT"
+    EMAIL_UNSUBSCRIBE = "EMAIL_UNSUBSCRIBE"
+    EMAIL_SEND_SKIP = "EMAIL_SEND_SKIP"
+
+    # SMS events
+    SMS_SEND = "SMS_SEND"
+    SMS_DELIVERED = "SMS_DELIVERED"
+    SMS_BOUNCE = "SMS_BOUNCE"
+    SMS_SEND_SKIP = "SMS_SEND_SKIP"
+
+    # Other
+    EVENT_TYPE = "EVENT_TYPE"
+
+    @classmethod
+    def get_all_types(cls) -> List[str]:
+        """Get list of all event types"""
+        return [
+            # Email
+            cls.EMAIL_SENT,
+            cls.EMAIL_DELIVERY,
+            cls.EMAIL_OPEN,
+            cls.EMAIL_CLICK,
+            cls.EMAIL_BOUNCE,
+            cls.EMAIL_COMPLAINT,
+            cls.EMAIL_UNSUBSCRIBE,
+            cls.EMAIL_SEND_SKIP,
+            # SMS
+            cls.SMS_SEND,
+            cls.SMS_DELIVERED,
+            cls.SMS_BOUNCE,
+            cls.SMS_SEND_SKIP,
+            # Other
+            cls.EVENT_TYPE
+        ]
+
+    @classmethod
+    def get_email_types(cls) -> List[str]:
+        """Get list of email event types"""
+        return [
+            cls.EMAIL_SENT,
+            cls.EMAIL_DELIVERY,
+            cls.EMAIL_OPEN,
+            cls.EMAIL_CLICK,
+            cls.EMAIL_BOUNCE,
+            cls.EMAIL_COMPLAINT,
+            cls.EMAIL_UNSUBSCRIBE,
+            cls.EMAIL_SEND_SKIP
+        ]
+
+    @classmethod
+    def get_sms_types(cls) -> List[str]:
+        """Get list of SMS event types"""
+        return [
+            cls.SMS_SEND,
+            cls.SMS_DELIVERED,
+            cls.SMS_BOUNCE,
+            cls.SMS_SEND_SKIP
+        ]
+
+    @classmethod
+    def is_valid(cls, event_type: str) -> bool:
+        """Check if event type is valid"""
+        return event_type in cls.get_all_types()
+
+
+@dataclass
 class ParticipantProfilesExportRequest:
     """
     Participant profiles (user properties) export request.
