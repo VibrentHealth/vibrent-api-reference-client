@@ -1,13 +1,18 @@
 # Sample Vibrent Health API Client Configuration
 # This file demonstrates all available configuration options
- # Version: 2.0 (Extensible Architecture)
+# Version: 3.0 (Flat, Fully Independent Configuration)
 #
 # INSTRUCTIONS FOR SETUP:
 # 1. Copy this file to 'vibrent_config.yaml' in the same directory
 # 2. Replace all placeholder URLs with your actual Vibrent Health API endpoints
-# 3. Configure your desired export type in the export.type field
+# 3. Choose the export type when running: python run_export.py --export-type <survey|ehr|survey_v2>
 # 4. Set up authentication credentials in your .env file
 # 5. Adjust export parameters based on your needs
+
+# ============================================
+# SHARED/UNIVERSAL CONFIGURATION
+# These settings apply to all export types
+# ============================================
 
 # Environment Configuration
 environment:
@@ -43,149 +48,6 @@ api:
   # WARNING: Logs will contain credentials and tokens - use in secure environments only
   debug_logging: false
 
-# Export Configuration
-export:
-  # NEW in v2.0: Export type selector
-  # Options: survey, survey_v2, ehr, device
-  # Change this to switch between different export types
-  type: "survey"
-
-  # Common settings for all export types
-  # These apply regardless of export type selected
-
-  # Default date range configuration
-  date_range:
-    # Default days back for relative date range
-    default_days_back: 30
-
-    # Support for absolute date ranges (ISO format: YYYY-MM-DD)
-    # If specified, these will override the relative date range
-    # Uncomment and set these to use absolute dates instead of relative
-    # absolute_start_date: "2024-01-01"
-    # absolute_end_date: "2024-12-31"
-
-  # Export monitoring configuration (applies to all export types)
-  monitoring:
-    # Polling interval in seconds
-    polling_interval: 10
-
-    # Maximum wait time in seconds (null for unlimited)
-    max_wait_time: null
-
-    # Whether to continue processing if some exports fail
-    continue_on_failure: true
-
-  # Legacy format config (for backward compatibility with old structure)
-  format: "JSON"
-
-  # Legacy request config (for backward compatibility)
-  request:
-    max_surveys: null
-    survey_ids: null
-    exclude_survey_ids: null
-
-  # ========================================
-  # Survey V1 Export Configuration
-  # Used when export.type = "survey"
-  # ========================================
-  survey:
-    # Export format (JSON or CSV)
-    format: "JSON"
-
-    # Survey filtering and selection
-    request:
-      # Maximum surveys to process (null for all surveys)
-      max_surveys: null
-
-      # Specific survey IDs to export (null for all surveys)
-      # If specified, only these surveys will be exported
-      # Precedence: survey_ids > exclude_survey_ids > max_surveys
-      # Example: [123, 456, 789] - only export these specific surveys
-      survey_ids: null
-
-      # Survey IDs to exclude from export (null for no exclusions)
-      # Example: [999, 888, 777] - exclude these specific surveys
-      # Note: This is ignored if survey_ids is specified
-      exclude_survey_ids: null
-
-  # ========================================
-  # Survey V2 Export Configuration
-  # Used when export.type = "survey_v2"
-  # Supports wide format, PII removal, and advanced options
-  # ========================================
-  survey_v2:
-    # File type for export (CSV or JSON)
-    # CSV recommended for wide format analysis
-    file_type: "CSV"
-
-    # Whether to remove personally identifiable information
-    # Set to true to exclude PII from exports
-    remove_pii: false
-
-    # Export only completed survey responses
-    # Set to false to include incomplete responses
-    completed_only: true
-
-    # Include data from withdrawn users
-    # Set to false to exclude withdrawn users
-    include_withdrawn_user: true
-
-    # Combine multiple values for multiple choice questions
-    # Set to false to keep them separate
-    combine_values_for_multiple_choices: true
-
-    # Choice value format for multiple choice questions
-    # Options:
-    #   - VALUE_ONLY: Just the numeric value (e.g., "1")
-    #   - TEXT_ONLY: Just the text (e.g., "Strongly Agree")
-    #   - VALUE_AND_TEXT: Both (e.g., "1 - Strongly Agree")
-    choice_value_format: "VALUE_AND_TEXT"
-
-    # User type filtering
-    # Options:
-    #   - REAL_ONLY: Only real participants
-    #   - TEST_ONLY: Only test accounts
-    #   - ALL_USERS: Both real and test users
-    user_type: "REAL_ONLY"
-
-    # Survey filtering and selection (same as V1)
-    request:
-      max_surveys: null
-      survey_ids: null
-      exclude_survey_ids: null
-
-  # ========================================
-  # EHR Export Configuration
-  # Used when export.type = "ehr"
-  # (To be implemented in Phase 3)
-  # ========================================
-  ehr:
-    # List of participant IDs to export EHR data for
-    # Example: [12345, 67890, 11111]
-    participant_ids: []
-
-    # Maximum number of participants to export (null for all)
-    max_participants: null
-
-    # Participant IDs to exclude from export
-    exclude_participant_ids: null
-
-  # ========================================
-  # Device Data Export Configuration
-  # Used when export.type = "device"
-  # (Future implementation)
-  # ========================================
-  device:
-    # Types of devices to export data for
-    # Example: ['fitbit', 'apple_watch', 'garmin']
-    device_types: []
-
-    # Participant IDs (null for all)
-    participant_ids: null
-
-    # Maximum devices to export
-    max_devices: null
-
 # Output Configuration
 output:
   # Base directory for all exports
@@ -199,6 +61,12 @@ output:
 
   # Device exports directory
   device_exports_dir: "device_exports"
+
+  # Participant profiles exports directory
+  participant_profiles_exports_dir: "participant_profiles_exports"
+
+  # Communication events exports directory
+  communication_events_exports_dir: "communication_events_exports"
 
   # Whether to extract files from zip archives
   extract_files: true
@@ -220,17 +88,448 @@ metadata:
   # Whether to include export status details in metadata
   include_export_status: true
 
+# ============================================
+# SURVEY V1 EXPORT CONFIGURATION
+# Everything needed for Survey V1 API requests
+# Used when: python run_export.py --export-type survey
+# ============================================
+survey_export:
+  # Date range configuration
+  # Set use_date_range to false to export ALL data without date filtering
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Recommended: 7-30 days for survey data
+    default_days_back: 7
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # Set to false to export entire date range in one request (even if > 6 months)
+  # Recommended: true for large date ranges to avoid timeouts
+  split_date_range: true
+
+  # Export format
+  # Options: JSON or CSV
+  format: "JSON"
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if some exports fail
+    continue_on_failure: true
+
+  # Survey filtering and selection
+  request:
+    # Maximum surveys to process (null for all surveys)
+    max_surveys: null
+
+    # Specific survey IDs to export (null for all surveys)
+    # If specified, only these surveys will be exported
+    # Precedence: survey_ids > exclude_survey_ids > max_surveys
+    # Example: [123, 456, 789] - only export these specific surveys
+    survey_ids: null
+
+    # Survey IDs to exclude from export (null for no exclusions)
+    # Example: [999, 888, 777] - exclude these specific surveys
+    # Note: This is ignored if survey_ids is specified
+    exclude_survey_ids: null
+
+# ============================================
+# SURVEY V2 EXPORT CONFIGURATION
+# Wide format, PII removal, and advanced options
+# Used when: python run_export.py --export-type survey_v2
+# ============================================
+survey_v2_export:
+  # Date range configuration
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    default_days_back: 30
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # Set to false to export entire date range in one request (even if > 6 months)
+  split_date_range: true
+
+  # File type and PII
+  # File type for export (CSV or JSON) - CSV recommended for wide format analysis
+  file_type: "CSV"
+
+  # Whether to remove personally identifiable information
+  # Set to true to exclude PII from exports
+  remove_pii: false
+
+  # Response filtering
+  # Export only completed survey responses (set to false to include incomplete responses)
+  completed_only: true
+
+  # Include data from withdrawn users (set to false to exclude withdrawn users)
+  include_withdrawn_user: true
+
+  # Multiple choice formatting
+  # Combine multiple values for multiple choice questions (set to false to keep them separate)
+  combine_values_for_multiple_choices: true
+
+  # Choice value format for multiple choice questions
+  # Options:
+  #   - VALUE_ONLY: Just the numeric value (e.g., "1")
+  #   - TEXT_ONLY: Just the text (e.g., "Strongly Agree")
+  #   - VALUE_AND_TEXT: Both (e.g., "1 - Strongly Agree")
+  choice_value_format: "VALUE_AND_TEXT"
+
+  # User type filtering
+  # Options:
+  #   - REAL_ONLY: Only real participants
+  #   - TEST_ONLY: Only test accounts
+  #   - ALL_USERS: Both real and test users
+  user_type: "REAL_ONLY"
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if some exports fail
+    continue_on_failure: true
+
+  # Survey filtering
+  request:
+    # Maximum surveys to process (null for all surveys)
+    max_surveys: null
+
+    # Specific survey IDs to export (null for all surveys)
+    # If specified, only these surveys will be exported
+    # Example: [123, 456, 789]
+    survey_ids: null
+
+    # Survey IDs to exclude from export (null for no exclusions)
+    # Example: [999, 888, 777]
+    # Note: This is ignored if survey_ids is specified
+    exclude_survey_ids: null
+
+# ============================================
+# EHR EXPORT CONFIGURATION
+# Electronic Health Records export
+# Used when: python run_export.py --export-type ehr
+# ============================================
+ehr_export:
+  # Date range configuration
+  # Set use_date_range to false to get ALL EHR data without date filtering
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Recommended: 1460 days (4 years) for EHR data
+    default_days_back: 1460
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # For EHR, typically use absolute dates to get historical data
+    # Example: 4 years of EHR data
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2020-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # For EHR exports, typically set this to false for better performance
+  # Set to false to export entire date range in one request (even if > 6 months)
+  split_date_range: false
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if some exports fail
+    continue_on_failure: true
+
+  # Participant filtering
+  # List of participant IDs to export EHR data for
+  # Example: [12345, 67890, 11111]
+  # IMPORTANT: At least one participant ID is required
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  exclude_participant_ids: null
+
+# ============================================
+# DEVICE DATA EXPORT CONFIGURATION
+# Wearable/device data export
+# Used when: python run_export.py --export-type device
+# ============================================
+device_export:
+  # Date range configuration
+  # Set use_date_range to false to get ALL device data without date filtering
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Recommended: 90 days (3 months) for device data
+    default_days_back: 90
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # Set to true to split large date ranges (>6 months) into chunks
+  split_date_range: true
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if some exports fail
+    continue_on_failure: true
+
+  # Participant filtering
+  # List of participant IDs to export device data for
+  # Example: [12345, 67890, 11111]
+  # IMPORTANT: At least one participant ID is required
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  exclude_participant_ids: null
+
+  # Device type filtering (source_mapping)
+  # Filter by device data sources. Leave empty [] or null to export from all device types.
+  # Supported values:
+  #   - FITBIT: Fitbit devices
+  #   - GARMIN: Garmin devices
+  #   - APPLE_HEALTHKIT: Apple HealthKit (internally uses APPLE_HEALTHKIT_V2)
+  # Example: ["FITBIT", "GARMIN"] - only export Fitbit and Garmin data
+  device_types: []
+
+  # Data type filtering (datatype_mapping - logical grouping)
+  # Filter by specific data types. Leave empty [] or null to export all data types.
+  # Each data type maps to source-specific payload types.
+  # Supported values:
+  #   - SLEEP: Sleep data
+  #       * FITBIT: DAILY_SLEEP_SUMMARY
+  #       * GARMIN: SLEEP_SUMMARY
+  #       * APPLE_HEALTHKIT: SLEEP_ANALYSIS, SLEEP_CHANGES
+  #   - STEPS: Step count data
+  #       * FITBIT: INTRADAY_STEPS
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: STEP_COUNT, WALKING_STEP_LENGTH
+  #   - HEART_RATE: Heart rate data
+  #       * FITBIT: HEARTRATE
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: HEART_RATE, HEART_RATE_VARIABILITY, RESTING_HEART_RATE, etc.
+  #   - ACTIVITY: Activity/exercise data
+  #       * FITBIT: DAILY_ACTIVITY_SUMMARY
+  #       * GARMIN: ACTIVITY_SUMMARY, ACTIVITY_DETAILS_SUMMARY
+  #       * APPLE_HEALTHKIT: ACTIVE_ENERGY_BURNED, WORKOUTS, VO2_MAX, etc.
+  #   - DISTANCE: Distance data
+  #       * FITBIT: not available
+  #       * GARMIN: not available
+  #       * APPLE_HEALTHKIT: DISTANCE_WALKING_RUNNING, DISTANCE_CYCLING, etc.
+  #   - RESPIRATORY: Respiratory data
+  #       * FITBIT: not available
+  #       * GARMIN: RESPIRATION, PULSE_OX
+  #       * APPLE_HEALTHKIT: RESPIRATORY_RATE, OXYGEN_SATURATION, etc.
+  #   - STRESS: Stress data
+  #       * FITBIT: not available
+  #       * GARMIN: STRESS_DETAILS, HRV_SUMMARY
+  #       * APPLE_HEALTHKIT: not available
+  #   - DAILY_SUMMARY: Daily summary data
+  #       * FITBIT: not available
+  #       * GARMIN: DAILY_SUMMARY, HEALTH_SNAPSHOT, EPOCH
+  #       * APPLE_HEALTHKIT: not available
+  # Example: ["SLEEP", "HEART_RATE"] - only export sleep and heart rate data
+  data_types: []
+
+  # Manifest only export
+  # If true, export only manifest metadata without full event data files
+  # If false, export full data files (default)
+  # Manifest-only exports are useful for quickly checking what data is available
+  manifest_only: false
+
+# ============================================
+# PARTICIPANT PROFILES EXPORT CONFIGURATION
+# User properties/participant profile data export
+# Used when: python run_export.py --export-type participant_profiles
+# ============================================
+participant_profiles_export:
+  # Participant profiles export does not use date ranges
+  # Always exports current participant profile/user property data
+  use_date_range: false
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if export fails
+    continue_on_failure: true
+
+  # Participant filtering
+  # IMPORTANT: This is a BATCH export - one request can export multiple participants
+  #
+  # Participant IDs are stored as integers in config but converted to strings for API
+  #
+  # Behavior:
+  #   - Empty list [] or null: Export ALL participants in the authenticated program
+  #   - Non-empty list: Export only specified participants (max 1000 entries per API limit)
+  #
+  # Example: [12345, 67890, 11111, 22222, 33333]
+  # IMPORTANT: At least an empty list is required (for "export all" behavior)
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  # NOTE: API has hard limit of 1000 participants per single request
+  # If you have more than 1000 participants, use max_participants to limit
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  # Example: [999, 888, 777] - exclude these specific participants
+  exclude_participant_ids: null
+
+# ============================================
+# COMMUNICATION EVENTS EXPORT CONFIGURATION
+# Email and SMS communication event data export
+# Used when: python run_export.py --export-type communication_events
+# ============================================
+communication_events_export:
+  # Date range configuration
+  # Set use_date_range to false to export ALL events without date filtering
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Recommended: 30 days for communication events
+    default_days_back: 30
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-12-31"
+
+  # Date range splitting
+  # Set to false to export entire date range in one request (even if > 6 months)
+  split_date_range: false
+
+  # Monitoring configuration
+  monitoring:
+    # Polling interval in seconds
+    polling_interval: 10
+
+    # Maximum wait time in seconds (null for unlimited)
+    max_wait_time: null
+
+    # Whether to continue processing if export fails
+    continue_on_failure: true
+
+  # Participant filtering
+  # IMPORTANT: This is a BATCH export - one request can export events for multiple participants
+  #
+  # Participant IDs are stored as integers in config but converted to strings for API
+  #
+  # Behavior:
+  #   - Empty list [] or null: Export events for ALL participants in the authenticated program
+  #   - Non-empty list: Export events only for specified participants
+  #
+  # Example: [12345, 67890, 11111, 22222, 33333]
+  participant_ids: []
+
+  # Maximum number of participants to export (null for all specified)
+  max_participants: null
+
+  # Participant IDs to exclude from export
+  # Example: [999, 888, 777] - exclude these specific participants
+  exclude_participant_ids: null
+
+  # Event source filtering
+  # Filter by communication platform sources. Leave empty [] or null to export from all sources.
+  # Supported values:
+  #   - ITERABLE: Iterable platform events (email, SMS)
+  #   - SES: Amazon SES (Simple Email Service) events (email only)
+  #   - TWILIO: Twilio platform events (SMS only)
+  # Example: ["ITERABLE", "SES"] - only export Iterable and SES events (email focus)
+  # Example: ["TWILIO"] - only export SMS events from Twilio
+  event_sources: []
+
+  # Event type filtering
+  # Filter by specific event types. Leave empty [] or null to export all event types.
+  #
+  # Email event types:
+  #   - EMAIL_SENT: Email was successfully sent from the platform
+  #   - EMAIL_DELIVERY: Email was delivered to recipient's mailbox
+  #   - EMAIL_OPEN: Recipient opened the email
+  #   - EMAIL_CLICK: Recipient clicked a link in the email
+  #   - EMAIL_BOUNCE: Email bounced (permanent or temporary delivery failure)
+  #   - EMAIL_COMPLAINT: Email was marked as spam by recipient
+  #   - EMAIL_UNSUBSCRIBE: Recipient unsubscribed from emails
+  #   - EMAIL_SEND_SKIP: Email send was skipped (e.g., user unsubscribed, blocked)
+  #
+  # SMS event types:
+  #   - SMS_SEND: SMS message was sent
+  #   - SMS_DELIVERED: SMS was delivered to recipient's device
+  #   - SMS_BOUNCE: SMS failed to deliver
+  #   - SMS_SEND_SKIP: SMS send was skipped
+  #
+  # Other:
+  #   - EVENT_TYPE: Generic event type (rarely used)
+  #
+  # Example use cases:
+  #   - ["EMAIL_OPEN", "EMAIL_CLICK"] - Track email engagement only
+  #   - ["EMAIL_BOUNCE", "EMAIL_COMPLAINT"] - Track email delivery issues only
+  #   - ["SMS_SEND", "SMS_DELIVERED"] - Track SMS delivery only
+  #   - ["EMAIL_SENT", "EMAIL_DELIVERY", "SMS_SEND", "SMS_DELIVERED"] - Track all successful sends
+  event_types: []
+
+  # Manifest only export
+  # If true, export only manifest metadata without full event data files
+  # If false, export full data files (default)
+  # Manifest-only exports are useful for quickly checking what events are available
+  manifest_only: false
+
 # ========================================
-# Migration Notes (v1.0 -> v2.0)
+# Migration Notes (v2.0 -> v3.0)
 # ========================================
-# If you're upgrading from v1.0:
-# 1. Old config still works! Backward compatible.
-# 2. To use new features, set export.type to the desired export type
-# 3. Configure type-specific options in the appropriate section
-# 4. Survey V1 uses export.survey section
-# 5. Survey V2 uses export.survey_v2 section
+# This is a BREAKING CHANGE from v2.0:
+# 1. Old nested structure (export.survey, export.ehr) is now flat (survey_export, ehr_export)
+# 2. No more export.type selector - use CLI argument --export-type instead
+# 3. Each export type is completely independent with its own date_range, monitoring, etc.
+# 4. NEW: use_date_range flag to optionally disable date filtering
+# 5. No more implicit inheritance or fallbacks - everything is explicit
 #
-# Quick Start:
-# - For Survey V1 (default): export.type = "survey"
-# - For Survey V2 (wide format): export.type = "survey_v2"
-# - For EHR data: export.type = "ehr" (Phase 3) 
+# Benefits:
+# - Zero ambiguity about what config applies to each export type
+# - Can run multiple export types simultaneously with different configs
+# - Change one export config doesn't affect others
+# - Request-focused: each section has exactly what's needed for that API

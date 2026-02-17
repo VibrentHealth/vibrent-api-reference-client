@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .base_exporter import BaseExporter
 from .config import ConfigManager
-from .constants import ErrorMessages, ExportStatus, FileConstants, SuccessMessages, TimeConstants
+from .constants import ConfigKeys, ErrorMessages, ExportStatus, FileConstants, SuccessMessages, TimeConstants
 from ..models import ExportMetadata
 
 
@@ -70,13 +70,20 @@ class ExportOrchestrator:
         output_config = self.config_manager.get_output_config()
         base_dir = output_base_dir or output_config.get("base_directory", FileConstants.OUTPUT_BASE_DIR)
 
-        # Get export format
-        export_config = self.config_manager.get("export")
-        self.export_format = export_config.get("format", "JSON")
+        # Get export type and export-specific configuration
+        export_type = exporter.get_export_type()
+        export_config = self.config_manager.get_export_config(export_type)
+
+        # Get export format (different key for different export types)
+        if export_type == "survey_v2":
+            self.export_format = export_config.get("file_type", "CSV")
+        else:
+            self.export_format = export_config.get("format", "JSON")
+
         self.extract_files = output_config.get("extract_files", True)
         self.remove_zip_after_extract = output_config.get("remove_zip_after_extract", True)
 
-        # Get monitoring configuration
+        # Get monitoring configuration from export-specific config
         monitoring_config = export_config.get("monitoring", {})
         self.polling_interval = monitoring_config.get("polling_interval", TimeConstants.DEFAULT_POLLING_INTERVAL)
         self.max_wait_time = monitoring_config.get("max_wait_time")
@@ -260,24 +267,54 @@ class ExportOrchestrator:
         Returns:
             True if any exports were requested, False otherwise
         """
-        # Get the date range from configuration
-        date_range = self.config_manager.get_date_range()
-        start_time = date_range["start_time"]
-        end_time = date_range["end_time"]
+        # Get the export type from the exporter
+        export_type = self.exporter.get_export_type()
+
+        # Check if date range should be used for this export type
+        use_date_range = self.config_manager.should_use_date_range(export_type)
+
+        if use_date_range:
+            # Get the date range from export-specific configuration
+            date_range = self.config_manager.get_date_range(export_type)
+            start_time = date_range["start_time"]
+            end_time = date_range["end_time"]
+        else:
+            # Date range disabled - use None to indicate no date filtering
+            start_time = None
+            end_time = None
+            self.logger.info(f"Date range filtering is disabled for {export_type} exports")
+
+        # Get split configuration from export-specific config
+        export_config = self.config_manager.get_export_config(export_type)
+        split_date_range_config = export_config.get("split_date_range", True)
 
         # Check if date range needs splitting (>6 months)
-        date_range_duration = end_time - start_time
-        needs_splitting = date_range_duration > TimeConstants.MS_PER_6_MONTHS
-
-        if needs_splitting:
-            self.logger.info(
-                f"Date range ({date_range_duration / TimeConstants.MS_PER_DAY:.1f} days) exceeds 6 months. "
-                f"Splitting into chunks."
+        # Only split if use_date_range is True
+        should_split = False
+        if use_date_range:
+            date_range_duration = end_time - start_time
+            should_split = (
+                split_date_range_config and
+                date_range_duration > TimeConstants.MS_PER_6_MONTHS
             )
-            date_chunks = self.split_date_range_into_chunks(start_time, end_time)
-            self.logger.info(f"Split date range into {len(date_chunks)} chunks")
+
+            if should_split:
+                self.logger.info(
+                    f"Date range ({date_range_duration / TimeConstants.MS_PER_DAY:.1f} days) exceeds 6 months. "
+                    f"Splitting into chunks."
+                )
+                date_chunks = self.split_date_range_into_chunks(start_time, end_time)
+                self.logger.info(f"Split date range into {len(date_chunks)} chunks")
+            else:
+                if not split_date_range_config:
+                    self.logger.info(
+                        f"Date range splitting is disabled for {export_type} exports. "
+                        f"Using single date range ({date_range_duration / TimeConstants.MS_PER_DAY:.1f} days)."
+                    )
+                date_chunks = [{"start_time": start_time, "end_time": end_time}]
         else:
-            date_chunks = [{"start_time": start_time, "end_time": end_time}]
+            # No date range - create a single "chunk" with None values
+            date_chunks = [{"start_time": None, "end_time": None}]
 
         # Request exports for each item and chunk
         for i, item in enumerate(filtered_items):
@@ -296,15 +333,21 @@ class ExportOrchestrator:
 
                     # Log request
                     item_name = self.exporter.get_item_display_name(item)
-                    if needs_splitting:
+                    if use_date_range and should_split:
                         self.logger.info(
                             f"[{i + 1}/{len(filtered_items)}][{j + 1}/{len(date_chunks)}] "
                             f"Requesting export for {item_name} - "
                             f"Date range: {datetime.fromtimestamp(chunk_start / 1000, tz=timezone.utc).strftime('%Y-%m-%d')} "
                             f"to {datetime.fromtimestamp(chunk_end / 1000, tz=timezone.utc).strftime('%Y-%m-%d')}"
                         )
+                    elif use_date_range:
+                        self.logger.info(
+                            f"[{i + 1}/{len(filtered_items)}] Requesting export for {item_name} - "
+                            f"Date range: {datetime.fromtimestamp(chunk_start / 1000, tz=timezone.utc).strftime('%Y-%m-%d')} "
+                            f"to {datetime.fromtimestamp(chunk_end / 1000, tz=timezone.utc).strftime('%Y-%m-%d')}"
+                        )
                     else:
-                        self.logger.info(f"[{i + 1}/{len(filtered_items)}] Requesting export for {item_name}")
+                        self.logger.info(f"[{i + 1}/{len(filtered_items)}] Requesting export for {item_name} (no date filter)")
 
                     # Request export
                     export_id = self.exporter.request_export(item, export_request)
@@ -314,8 +357,8 @@ class ExportOrchestrator:
                         "exportId": export_id,
                         "chunk_start": chunk_start,
                         "chunk_end": chunk_end,
-                        "chunk_index": j if needs_splitting else 0,
-                        "total_chunks": len(date_chunks) if needs_splitting else 1,
+                        "chunk_index": j if should_split else 0,
+                        "total_chunks": len(date_chunks) if should_split else 1,
                         "status": None,
                         "file_path": None
                     }
@@ -323,7 +366,7 @@ class ExportOrchestrator:
                     # Add export detail to the item in metadata
                     item_dict['export_details'].append(export_detail)
 
-                    if needs_splitting:
+                    if should_split:
                         self.logger.info(
                             f"[{i + 1}/{len(filtered_items)}][{j + 1}/{len(date_chunks)}] "
                             f"Requested export, export id: {export_id}"
@@ -342,7 +385,7 @@ class ExportOrchestrator:
                         "itemId": item_id,
                         "error": str(e),
                         "stage": "export_request",
-                        "chunk_index": j if needs_splitting else None
+                        "chunk_index": j if should_split else None
                     })
 
         # Check if any exports were successfully requested

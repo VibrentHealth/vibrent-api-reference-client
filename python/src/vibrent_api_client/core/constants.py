@@ -21,6 +21,15 @@ class APIEndpoints:
     # Export endpoints - EHR
     EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request"
 
+    # Export endpoints - Device
+    DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request"
+
+    # Export endpoints - Participant Profiles (User Properties)
+    PARTICIPANT_PROFILES_EXPORT_REQUEST = "/api/ext/export/participantProfiles/request"
+
+    # Export endpoints - Communication Events
+    COMMUNICATION_EVENTS_EXPORT_REQUEST = "/api/ext/export/communicationEvents/request"
+
     # Common export endpoints (shared across all export types)
     EXPORT_STATUS = "/api/ext/export/status/{export_id}"
     EXPORT_DOWNLOAD = "/api/ext/export/download/{export_id}"
@@ -174,6 +183,8 @@ class ConfigKeys:
     SURVEY_EXPORTS_DIR = "survey_exports_dir"
     EHR_EXPORTS_DIR = "ehr_exports_dir"
     DEVICE_EXPORTS_DIR = "device_exports_dir"
+    PARTICIPANT_PROFILES_EXPORTS_DIR = "participant_profiles_exports_dir"
+    COMMUNICATION_EVENTS_EXPORTS_DIR = "communication_events_exports_dir"
     EXTRACT_FILES = "extract_files"
     REMOVE_ZIP_AFTER_EXTRACT = "remove_zip_after_extract"
 
@@ -190,4 +201,6 @@ class ExportType:
     SURVEY = "survey"
     SURVEY_V2 = "survey_v2"
     EHR = "ehr"
-    DEVICE = "device" 
+    DEVICE = "device"
+    PARTICIPANT_PROFILES = "participant_profiles"
+    COMMUNICATION_EVENTS = "communication_events" 

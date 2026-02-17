@@ -13,7 +13,17 @@ import requests
 from .auth import AuthenticationManager, VibrentHealthAPIError
 from .config import ConfigManager
 from .constants import APIEndpoints, ErrorMessages, Headers, TimeConstants
-from ..models import Survey, ExportRequest, ExportStatus, WideFormatReportRequest
+from ..models import (
+    Survey,
+    ExportRequest,
+    ExportStatus,
+    WideFormatReportRequest,
+    EHRExportRequest,
+    DeviceDataExportRequest,
+    ParticipantProfilesExportRequest,
+    CommunicationEventsExportRequest,
+    Participant
+)
 from ..utils.helpers import safe_from_dict
 
 
@@ -205,6 +215,223 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"Survey V2 export requested successfully: {export_id}")
+        return export_id
+
+    def request_ehr_export(self, participant_id: int, export_request: EHRExportRequest) -> str:
+        """
+        Request EHR data export for a specific participant.
+
+        This API endpoint allows you to export Electronic Health Record (EHR) data
+        for individual participants within a specified date range.
+
+        Args:
+            participant_id: The participant's unique identifier
+            export_request: EHRExportRequest with date range
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Example:
+            >>> request = EHRExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000
+            ... )
+            >>> export_id = client.request_ehr_export(12345, request)
+        """
+        self.logger.info(f"Requesting EHR export for participant {participant_id}")
+        self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.EHR_EXPORT_REQUEST.format(participant_id=participant_id),
+            json=asdict(export_request)
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"EHR export requested successfully: {export_id}")
+        return export_id
+
+    def request_device_export(self, participant_id: int, export_request: DeviceDataExportRequest) -> str:
+        """
+        Request device data export for a specific participant.
+
+        This API endpoint allows you to export device data (Fitbit, Garmin, Apple HealthKit)
+        for individual participants with optional filtering by device type, data type, and date range.
+
+        Args:
+            participant_id: The participant's unique identifier
+            export_request: DeviceDataExportRequest with filters
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Example:
+            >>> request = DeviceDataExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     deviceTypes=["FITBIT", "GARMIN"],
+            ...     dataTypes=["SLEEP", "HEART_RATE"],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_device_export(12345, request)
+        """
+        self.logger.info(f"Requesting device data export for participant {participant_id}")
+        self.logger.debug(
+            f"Filters - Date range: {export_request.dateFrom} to {export_request.dateTo}, "
+            f"Device types: {export_request.deviceTypes}, "
+            f"Data types: {export_request.dataTypes}, "
+            f"Manifest only: {export_request.manifestOnly}"
+        )
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.DEVICE_EXPORT_REQUEST.format(participant_id=participant_id),
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Device data export requested successfully: {export_id}")
+        return export_id
+
+    def request_participant_profiles_export(self, export_request: ParticipantProfilesExportRequest) -> str:
+        """
+        Request participant profiles (user properties) export.
+
+        This API endpoint exports participant profile/user property data. Unlike other
+        export endpoints, this is a batch export that can export multiple participants
+        in a single request.
+
+        Args:
+            export_request: ParticipantProfilesExportRequest with participant IDs
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports ALL participants in the authenticated program
+            - participantIds with values: exports only specified participants (max 1000)
+            - participantIds must be strings per API contract
+
+        Example:
+            >>> # Export specific participants
+            >>> request = ParticipantProfilesExportRequest(
+            ...     participantIds=["12345", "67890", "11111"]
+            ... )
+            >>> export_id = client.request_participant_profiles_export(request)
+            >>>
+            >>> # Export all participants
+            >>> request = ParticipantProfilesExportRequest(participantIds=None)
+            >>> export_id = client.request_participant_profiles_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting participant profiles export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting all participants in the program")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.PARTICIPANT_PROFILES_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Participant profiles export requested successfully: {export_id}")
+        return export_id
+
+    def request_communication_events_export(self, export_request: CommunicationEventsExportRequest) -> str:
+        """
+        Request communication events export.
+
+        This API endpoint exports communication events (email, SMS) for participants
+        within a specified date range. Unlike other export endpoints, this is a batch
+        export that can export multiple participants in a single request.
+
+        Args:
+            export_request: CommunicationEventsExportRequest with filters
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports events for ALL participants in the program
+            - participantIds with values: exports events for specified participants only
+            - dateFrom/dateTo optional: defaults to dateFrom=0, dateTo=current time if omitted
+            - eventSources empty/null: export from all sources (ITERABLE, SES, TWILIO)
+            - eventTypes empty/null: export all event types
+            - participantIds must be strings per API contract
+
+        Example:
+            >>> # Export email events for specific participants in date range
+            >>> request = CommunicationEventsExportRequest(
+            ...     participantIds=["12345", "67890"],
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     eventSources=["ITERABLE", "SES"],
+            ...     eventTypes=["EMAIL_SENT", "EMAIL_DELIVERY", "EMAIL_OPEN"],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_communication_events_export(request)
+            >>>
+            >>> # Export all events for all participants
+            >>> request = CommunicationEventsExportRequest(
+            ...     participantIds=None,
+            ...     dateFrom=None,
+            ...     dateTo=None,
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_communication_events_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting communication events export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting events for all participants in the program")
+
+        if export_request.dateFrom and export_request.dateTo:
+            self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+        else:
+            self.logger.debug("No date range specified - will use API defaults")
+
+        if export_request.eventSources:
+            self.logger.debug(f"Event sources filter: {export_request.eventSources}")
+        if export_request.eventTypes:
+            self.logger.debug(f"Event types filter: {export_request.eventTypes}")
+
+        self.logger.debug(f"Manifest only: {export_request.manifestOnly}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.COMMUNICATION_EVENTS_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Communication events export requested successfully: {export_id}")
         return export_id
 
     def get_export_status(self, export_id: str) -> ExportStatus:

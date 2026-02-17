@@ -219,7 +219,7 @@ class BaseExporter(ABC):
         Get the configuration section for this export type.
 
         This is a convenience method that retrieves the export-type-specific
-        configuration section (e.g., export.survey, export.ehr).
+        configuration section using the v3.0 flat structure (e.g., survey_export, ehr_export).
 
         Returns:
             Dictionary containing export-type-specific configuration
@@ -230,7 +230,7 @@ class BaseExporter(ABC):
             'JSON'
         """
         export_type = self.get_export_type()
-        return self.config_manager.get(f"export.{export_type}", {})
+        return self.config_manager.get_export_config(export_type)
 
     def should_extract_files(self) -> bool:
         """

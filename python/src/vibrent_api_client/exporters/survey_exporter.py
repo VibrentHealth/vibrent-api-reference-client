@@ -86,19 +86,33 @@ class SurveyExporter(BaseExporter):
         Returns:
             Filtered list of Survey objects
         """
-        survey_filter = self.config_manager.get_survey_filter()
-        max_surveys = survey_filter.get("max_surveys")
+        # Get survey-specific config section
+        survey_config = self.get_config_section()
+        request_config = survey_config.get("request", {})
+
+        max_surveys = request_config.get("max_surveys")
+        survey_ids = request_config.get("survey_ids")
+        exclude_survey_ids = request_config.get("exclude_survey_ids")
 
         filtered_surveys = []
 
         for survey in surveys:
-            if self.config_manager.should_include_survey(survey.platformFormId, survey.name):
-                filtered_surveys.append(survey)
+            # Check inclusion list
+            if survey_ids is not None:
+                if survey.platformFormId not in survey_ids:
+                    continue
 
-                # Check if we've reached the max
-                if max_surveys and len(filtered_surveys) >= max_surveys:
-                    self.logger.info(f"Reached max_surveys limit of {max_surveys}")
-                    break
+            # Check exclusion list
+            if exclude_survey_ids is not None:
+                if survey.platformFormId in exclude_survey_ids:
+                    continue
+
+            filtered_surveys.append(survey)
+
+            # Check if we've reached the max
+            if max_surveys and len(filtered_surveys) >= max_surveys:
+                self.logger.info(f"Reached max_surveys limit of {max_surveys}")
+                break
 
         self.logger.info(
             f"Filtered {len(surveys)} surveys down to {len(filtered_surveys)} "
@@ -118,11 +132,9 @@ class SurveyExporter(BaseExporter):
         Returns:
             ExportRequest object configured for this survey
         """
-        # Get format from survey-specific config, fallback to general export config
+        # Get format from survey-specific config
         survey_config = self.get_config_section()
-        export_config = self.config_manager.get("export", {})
-
-        export_format = survey_config.get("format") or export_config.get("format", "JSON")
+        export_format = survey_config.get("format", "JSON")
 
         request = ExportRequest(
             dateFrom=date_range['start_time'],

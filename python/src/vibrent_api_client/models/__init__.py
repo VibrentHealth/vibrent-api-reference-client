@@ -7,7 +7,16 @@ from .data_models import (
     ExportRequest,
     ExportStatus,
     ExportMetadata,
-    WideFormatReportRequest
+    WideFormatReportRequest,
+    EHRExportRequest,
+    DeviceDataExportRequest,
+    ParticipantProfilesExportRequest,
+    CommunicationEventsExportRequest,
+    Participant,
+    DeviceType,
+    DeviceDataType,
+    CommunicationEventSource,
+    CommunicationEventType
 )
 
 __all__ = [
@@ -15,5 +24,14 @@ __all__ = [
     "ExportRequest",
     "ExportStatus",
     "ExportMetadata",
-    "WideFormatReportRequest"
+    "WideFormatReportRequest",
+    "EHRExportRequest",
+    "DeviceDataExportRequest",
+    "ParticipantProfilesExportRequest",
+    "CommunicationEventsExportRequest",
+    "Participant",
+    "DeviceType",
+    "DeviceDataType",
+    "CommunicationEventSource",
+    "CommunicationEventType"
 ] 
