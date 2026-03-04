@@ -537,16 +537,15 @@ class ExportOrchestrator:
 
         # Process all items and their export details
         for item in self.export_metadata.surveys:
-            for export_detail in item['export_details']:
-                if not export_detail.get('file_path'):
-                    continue
+            valid_export_details = [
+                ed for ed in item['export_details']
+                if ed.get('file_path') and Path(ed['file_path']).exists()
+            ]
 
+            for seq_num, export_detail in enumerate(valid_export_details, start=1):
                 zip_path = Path(export_detail['file_path'])
-                if not zip_path.exists():
-                    continue
-
-                chunk_index = export_detail.get('chunk_index', 0)
                 total_chunks = export_detail.get('total_chunks', 1)
+                export_detail['sequential_part_number'] = seq_num
 
                 extraction_successful = True
                 try:
@@ -557,7 +556,7 @@ class ExportOrchestrator:
                             # Generate unique filename with postfix if needed
                             if total_chunks > 1:
                                 name, ext = os.path.splitext(original_filename)
-                                postfix_filename = f"{name}_part_{chunk_index + 1}{ext}"
+                                postfix_filename = f"{name}_part_{seq_num}{ext}"
                             else:
                                 postfix_filename = original_filename
 
@@ -612,9 +611,12 @@ class ExportOrchestrator:
                 file_path = export_detail.get('file_path')
                 if file_path:
                     # Find extracted JSON file
-                    chunk_index = export_detail.get('chunk_index', 0)
+                    seq_num = export_detail.get(
+                        'sequential_part_number',
+                        export_detail.get('chunk_index', 0) + 1  # fallback if extract was skipped
+                    )
                     # Look for pattern like *_part_N.json in output directory
-                    for extracted_file in self.output_dir.glob(f"*_part_{chunk_index + 1}.json"):
+                    for extracted_file in self.output_dir.glob(f"*_part_{seq_num}.json"):
                         file_paths.append(extracted_file)
                         break
 

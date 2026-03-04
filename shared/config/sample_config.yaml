@@ -72,7 +72,7 @@ output:
   extract_files: true
 
   # Whether to remove zip files after extraction
-  remove_zip_after_extract: true
+  remove_zip_after_extract: false
 
 # Metadata Configuration
 metadata:
@@ -111,7 +111,7 @@ survey_export:
   # Date range splitting
   # Set to false to export entire date range in one request (even if > 6 months)
   # Recommended: true for large date ranges to avoid timeouts
-  split_date_range: true
+  split_date_range: false
 
   # Export format
   # Options: JSON or CSV
@@ -164,7 +164,7 @@ survey_v2_export:
 
   # Date range splitting
   # Set to false to export entire date range in one request (even if > 6 months)
-  split_date_range: true
+  split_date_range: false
 
   # File type and PII
   # File type for export (CSV or JSON) - CSV recommended for wide format analysis
@@ -297,7 +297,7 @@ device_export:
 
   # Date range splitting
   # Set to true to split large date ranges (>6 months) into chunks
-  split_date_range: true
+  split_date_range: false
 
   # Monitoring configuration
   monitoring:
