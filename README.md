@@ -39,35 +39,9 @@ Vibrent Health maintains this repository to provide a demonstration implementati
    # Option 4: Manual setup and run
    cd python
    pip install -r requirements.txt
-   python run_export.py
+   python run_export_new.py
    ```
 
-### Java Implementation
-
-1. **Set environment variables**:
-   ```bash
-   export VIBRENT_CLIENT_ID="your_client_id"
-   export VIBRENT_CLIENT_SECRET="your_client_secret"
-   export VIBRENT_ENVIRONMENT="staging"  # or "production"
-   ```
-
-2. **Configure the client** (uses same shared config as Python):
-   Update `shared/config/vibrent_config.yaml` with your API URLs and settings.
-
-3. **Build and run**:
-   ```bash
-   # Option 1: Build and run in one command (recommended)
-   ./run_java_client.sh
-   
-   # Option 2: Build only
-   ./run_java_client.sh --build
-   
-   # Option 3: Run only (if already built)
-   ./run_java_client.sh --run
-   
-   # Option 4: Direct JAR execution (after building)
-   java -jar java/target/vibrent-api-client-1.0.0.jar
-   ```
 
 ## Key Features
 
@@ -134,20 +108,17 @@ This project is licensed under the MIT License with additional disclaimers. See 
 
 ---
 
-## Multi-language Structure
+## Structure
 
 This repository is organized to support multiple language implementations:
 
 - `python/` – Python reference implementation (see `python/README.md`)
-- `java/` – Java reference implementation (see `java/README.md`)
 - `javascript/` – (planned) JavaScript/Node.js implementation
 
-Each language implementation writes its output to its own subfolder (e.g., `python/output/`, `java/output/`).
+Each language implementation writes its output to its own subfolder (e.g., `python/output/`).
 
 ## Configuration
 
-All language implementations share the same configuration files in `shared/config/`:
+All implementations share the same configuration files in `shared/config/`:
 - `shared/config/vibrent_config.yaml` - Main configuration file
 - `shared/config/sample_config.yaml` - Sample configuration template
-
-This ensures consistent behavior across all language implementations. 

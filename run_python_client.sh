@@ -7,7 +7,7 @@ set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_DIR="$SCRIPT_DIR/python"
-PYTHON_SCRIPT="$PYTHON_DIR/run_export.py"
+PYTHON_SCRIPT="$PYTHON_DIR/run_export_new.py"
 
 echo "🐍 Vibrent Health API Client - Python Implementation"
 echo "==================================================="
@@ -92,49 +92,63 @@ check_environment() {
 }
 
 # Function to run the application
+# Args are passed directly to run_export_new.py:
+#   [config_file]        optional positional path to config YAML
+#   --export-type TYPE   export type (survey, survey_v2, ehr, etc.)
+#   --list-types         list available export types and exit
 run_application() {
     echo "🚀 Starting Python application..."
     echo ""
-    
+
     cd "$PYTHON_DIR"
-    
+
     # Activate virtual environment
     source venv/bin/activate
-    
-    # Run the application with any provided arguments
-    if [ $# -eq 0 ]; then
-        # No arguments - use default config
+
+    # Build python args
+    PYTHON_ARGS=()
+    [ -n "$CONFIG_FILE" ]   && PYTHON_ARGS+=("$CONFIG_FILE")
+    [ -n "$EXPORT_TYPE" ]   && PYTHON_ARGS+=("--export-type" "$EXPORT_TYPE")
+    [ "$LIST_TYPES" = true ] && PYTHON_ARGS+=("--list-types")
+
+    if [ ${#PYTHON_ARGS[@]} -eq 0 ]; then
         echo "📝 Using default configuration"
-        python run_export.py
     else
-        # Pass arguments to the application
-        echo "📝 Using custom arguments: $*"
-        python run_export.py "$@"
+        echo "📝 Arguments: ${PYTHON_ARGS[*]}"
     fi
-    
+
+    python run_export_new.py "${PYTHON_ARGS[@]}"
+
     cd "$SCRIPT_DIR"
 }
 
 # Function to show help
 show_help() {
-    echo "Usage: $0 [OPTIONS] [PYTHON_ARGS...]"
+    echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Options:"
-    echo "  -h, --help     Show this help message"
-    echo "  -s, --setup    Setup Python environment only (don't run)"
-    echo "  -r, --run      Run the application only (skip setup if venv exists)"
-    echo "  --force-setup  Force recreate virtual environment"
+    echo "Shell Options:"
+    echo "  -h, --help              Show this help message"
+    echo "  -s, --setup             Setup Python environment only (don't run)"
+    echo "  -r, --run               Run the application only (skip setup if venv exists)"
+    echo "  --force-setup           Force recreate virtual environment"
+    echo ""
+    echo "Export Options (passed to run_export_new.py):"
+    echo "  --config FILE           Path to configuration YAML file"
+    echo "  --export-type TYPE      Export type: survey, survey_v2, ehr, etc."
+    echo "  --list-types            List available export types and exit"
     echo ""
     echo "Examples:"
-    echo "  $0                    # Setup and run with default config"
-    echo "  $0 --setup            # Setup only"
-    echo "  $0 --run              # Run only (if venv exists)"
-    echo "  $0 custom_config.yaml # Setup and run with custom config"
+    echo "  $0                                   # Setup and run with default config"
+    echo "  $0 --setup                           # Setup only"
+    echo "  $0 --run                             # Run only (if venv exists)"
+    echo "  $0 --config path/to/config.yaml      # Run with custom config"
+    echo "  $0 --export-type ehr                 # Run EHR export"
+    echo "  $0 --list-types                      # List available export types"
     echo ""
     echo "Environment Variables:"
-    echo "  VIBRENT_CLIENT_ID     Your Vibrent Health client ID"
-    echo "  VIBRENT_CLIENT_SECRET Your Vibrent Health client secret"
-    echo "  VIBRENT_ENVIRONMENT   Environment (staging/production)"
+    echo "  VIBRENT_CLIENT_ID       Your Vibrent Health client ID"
+    echo "  VIBRENT_CLIENT_SECRET   Your Vibrent Health client secret"
+    echo "  VIBRENT_ENVIRONMENT     Environment (staging/production)"
     echo ""
 }
 
@@ -147,6 +161,9 @@ venv_exists() {
 SETUP_ONLY=false
 RUN_ONLY=false
 FORCE_SETUP=false
+CONFIG_FILE=""
+EXPORT_TYPE=""
+LIST_TYPES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -164,6 +181,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --force-setup)
             FORCE_SETUP=true
+            shift
+            ;;
+        --config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --export-type)
+            EXPORT_TYPE="$2"
+            shift 2
+            ;;
+        --list-types)
+            LIST_TYPES=true
             shift
             ;;
         -*)

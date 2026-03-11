@@ -22,7 +22,7 @@ This directory contains the Python reference implementation for accessing Vibren
 
 3. Run the export:
    ```bash
-   python run_export.py
+   python run_export_new.py
    ```
 
 ## Output
