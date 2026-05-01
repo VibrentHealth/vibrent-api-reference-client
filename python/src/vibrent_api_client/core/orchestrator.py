@@ -456,6 +456,16 @@ class ExportOrchestrator:
                             "status": asdict(status)
                         })
 
+                        # Also update the matching export_detail so failure is visible in-context
+                        for item in self.export_metadata.surveys:
+                            for export_detail in item['export_details']:
+                                if export_detail['exportId'] == export_id:
+                                    export_detail['status'] = asdict(status)
+                                    break
+                            else:
+                                continue
+                            break
+
                     elif status.status in [ExportStatus.SUBMITTED, ExportStatus.IN_PROGRESS]:
                         current_status_counts["IN_PROGRESS"] += 1
 
@@ -674,7 +684,13 @@ class ExportOrchestrator:
     def _update_metadata(self, completed_exports: Dict, failed_export_ids: List, filtered_items: List) -> None:
         """Update export metadata with final statistics."""
         self.export_metadata.successful_exports = len(completed_exports)
-        self.export_metadata.failed_exports = len(failed_export_ids) + len(self.export_metadata.failures)
+        # Count unique failed export IDs across all failure stages (poll + download).
+        # Do NOT add len(failures) — poll failures are already in failed_export_ids AND failures[].
+        failed_export_ids_set = set(failed_export_ids)
+        for f in self.export_metadata.failures:
+            if "exportId" in f and f["exportId"] not in failed_export_ids_set:
+                failed_export_ids_set.add(f["exportId"])
+        self.export_metadata.failed_exports = len(failed_export_ids_set)
 
         # Check metadata configuration
         metadata_config = self.config_manager.get_metadata_config()
