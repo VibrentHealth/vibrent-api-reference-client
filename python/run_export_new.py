@@ -127,7 +127,8 @@ def main():
         print(f"  Total items: {metadata.total_surveys}")
         print(f"  Successful: {metadata.successful_exports}")
         print(f"  Failed: {metadata.failed_exports}")
-        print(f"  Duration: {metadata.duration_seconds:.2f} seconds")
+        duration = metadata.duration_seconds
+        print(f"  Duration: {duration:.2f} seconds" if duration is not None else "  Duration: N/A")
         print(f"  Output: {metadata.output_directory}")
         print("=" * 60)
 
