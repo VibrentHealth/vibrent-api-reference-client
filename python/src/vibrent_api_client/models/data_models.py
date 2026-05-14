@@ -538,6 +538,7 @@ class ExportMetadata:
     output_directory: str
     surveys: List[Dict] = field(default_factory=list)
     failures: List[Dict] = field(default_factory=list)
+    failuresV2: List[Dict] = field(default_factory=list)
     end_timestamp: Optional[str] = None
     duration_seconds: Optional[float] = None
 
@@ -553,6 +554,7 @@ class ExportMetadata:
             'output_directory': '',
             'surveys': [],
             'failures': [],
+            'failuresV2': [],
             'end_timestamp': None,
             'duration_seconds': None
         }
