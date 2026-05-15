@@ -440,15 +440,20 @@ class ParticipantProfilesExportRequest:
 
     Special behavior:
     - null or empty array: export ALL participants in the authenticated program
-    - non-empty array: export only specified participants (max 1000 entries)
+    - non-empty array: export only specified participants
     - participantIds must be strings (not integers), per API contract
+    - dateFrom/dateTo optional; if provided, must be valid epoch millis and dateFrom <= dateTo
     """
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     participantIds: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, data: dict):
         """Create ParticipantProfilesExportRequest object from dictionary"""
         defaults = {
+            'dateFrom': None,
+            'dateTo': None,
             'participantIds': None
         }
 
@@ -459,6 +464,10 @@ class ParticipantProfilesExportRequest:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary, excluding None values for 'export all' behavior"""
         result = {}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
         if self.participantIds is not None:
             result['participantIds'] = self.participantIds
         return result
@@ -478,6 +487,7 @@ class DeviceDataExportRequest:
     """
     dateFrom: Optional[int] = None
     dateTo: Optional[int] = None
+    participantIds: Optional[List[int]] = None
     deviceTypes: Optional[List[str]] = None
     dataTypes: Optional[List[str]] = None
     manifestOnly: bool = False
@@ -488,6 +498,7 @@ class DeviceDataExportRequest:
         defaults = {
             'dateFrom': None,
             'dateTo': None,
+            'participantIds': None,
             'deviceTypes': None,
             'dataTypes': None,
             'manifestOnly': False
@@ -504,6 +515,8 @@ class DeviceDataExportRequest:
             result['dateFrom'] = self.dateFrom
         if self.dateTo is not None:
             result['dateTo'] = self.dateTo
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
         if self.deviceTypes is not None:
             result['deviceTypes'] = self.deviceTypes
         if self.dataTypes is not None:

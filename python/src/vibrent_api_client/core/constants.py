@@ -24,8 +24,11 @@ class APIEndpoints:
     # Export endpoints - EHR (multi-participant)
     EHR_MULTI_EXPORT_REQUEST = "/api/ext/export/ehr/request"
 
-    # Export endpoints - Device
+    # Export endpoints - Device (single-participant)
     DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request"
+
+    # Export endpoints - Device (multi-participant)
+    DEVICE_MULTI_EXPORT_REQUEST = "/api/ext/export/device/request"
 
     # Export endpoints - Participant Profiles (User Properties)
     PARTICIPANT_PROFILES_EXPORT_REQUEST = "/api/ext/export/participantProfiles/request"

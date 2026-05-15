@@ -367,6 +367,61 @@ class VibrentHealthAPIClient:
         self.logger.info(f"Device data export requested successfully: {export_id}")
         return export_id
 
+    def request_multi_device_export(self, export_request: DeviceDataExportRequest) -> str:
+        """
+        Request device data export for multiple participants.
+
+        Args:
+            export_request: DeviceDataExportRequest with participant IDs and filters
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports device data for ALL participants in the program
+            - participantIds with values: exports device data for specified participants only
+            - participantIds are integers (Long in server DTO)
+
+        Example:
+            >>> request = DeviceDataExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=[12345, 67890],
+            ...     deviceTypes=["FITBIT"],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_device_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting multi-participant device data export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting device data for all participants in the program")
+
+        self.logger.debug(
+            f"Filters - Date range: {export_request.dateFrom} to {export_request.dateTo}, "
+            f"Device types: {export_request.deviceTypes}, "
+            f"Data types: {export_request.dataTypes}, "
+            f"Manifest only: {export_request.manifestOnly}"
+        )
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.DEVICE_MULTI_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Multi-participant device data export requested successfully: {export_id}")
+        return export_id
+
     def request_participant_profiles_export(self, export_request: ParticipantProfilesExportRequest) -> str:
         """
         Request participant profiles (user properties) export.
@@ -386,8 +441,9 @@ class VibrentHealthAPIClient:
 
         Note:
             - participantIds null/empty: exports ALL participants in the authenticated program
-            - participantIds with values: exports only specified participants (max 1000)
+            - participantIds with values: exports only specified participants
             - participantIds must be strings per API contract
+            - dateFrom/dateTo optional; if provided, must be valid epoch millis and dateFrom <= dateTo
 
         Example:
             >>> # Export specific participants
