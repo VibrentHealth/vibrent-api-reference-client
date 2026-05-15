@@ -19,6 +19,7 @@ from ..models import (
     ExportStatus,
     WideFormatReportRequest,
     EHRExportRequest,
+    EHRMultiExportRequest,
     DeviceDataExportRequest,
     ParticipantProfilesExportRequest,
     CommunicationEventsExportRequest,
@@ -254,6 +255,69 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"EHR export requested successfully: {export_id}")
+        return export_id
+
+    def request_multi_ehr_export(self, export_request: EHRMultiExportRequest) -> str:
+        """
+        Request EHR data export for multiple participants.
+
+        This API endpoint allows you to export Electronic Health Record (EHR) data
+        for multiple participants in a single batch request within a specified date range.
+
+        Args:
+            export_request: EHRMultiExportRequest with participant IDs, date range, and manifestOnly flag
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports EHR data for ALL participants in the program
+            - participantIds with values: exports EHR data for specified participants only
+            - participantIds are integers (Long in server DTO), unlike Comms/Profiles which use strings
+
+        Example:
+            >>> # Export EHR data for specific participants in date range
+            >>> request = EHRMultiExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=[12345, 67890, 11111],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_ehr_export(request)
+            >>>
+            >>> # Export EHR data for all participants
+            >>> request = EHRMultiExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=None,
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_ehr_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting multi-participant EHR export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting EHR data for all participants in the program")
+
+        self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+        self.logger.debug(f"Manifest only: {export_request.manifestOnly}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.EHR_MULTI_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Multi-participant EHR export requested successfully: {export_id}")
         return export_id
 
     def request_device_export(self, participant_id: int, export_request: DeviceDataExportRequest) -> str:

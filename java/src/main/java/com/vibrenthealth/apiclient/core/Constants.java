@@ -19,6 +19,23 @@ public class Constants {
         public static final String EXPORT_REQUEST = "/api/ext/export/survey/{survey_id}/request";
         public static final String EXPORT_STATUS = "/api/ext/export/status/{export_id}";
         public static final String EXPORT_DOWNLOAD = "/api/ext/export/download/{export_id}";
+
+        // Survey V2 (wide format)
+        public static final String EXPORT_REQUEST_V2 = "/api/ext/export/v2/survey/{survey_id}/request";
+
+        // EHR endpoints
+        public static final String EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request";
+        public static final String EHR_MULTI_EXPORT_REQUEST = "/api/ext/export/ehr/request";
+
+        // Device endpoints
+        public static final String DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request";
+        public static final String DEVICE_MULTI_EXPORT_REQUEST = "/api/ext/export/device/request";
+
+        // Participant Profiles
+        public static final String PARTICIPANT_PROFILES_EXPORT_REQUEST = "/api/ext/export/participantProfiles/request";
+
+        // Communication Events
+        public static final String COMMUNICATION_EVENTS_EXPORT_REQUEST = "/api/ext/export/communicationEvents/request";
     }
     
     // Export Status Constants

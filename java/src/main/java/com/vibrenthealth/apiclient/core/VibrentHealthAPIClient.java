@@ -3,9 +3,14 @@ package com.vibrenthealth.apiclient.core;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vibrenthealth.apiclient.models.CommunicationEventsExportRequest;
+import com.vibrenthealth.apiclient.models.DeviceDataExportRequest;
+import com.vibrenthealth.apiclient.models.EHRExportRequest;
 import com.vibrenthealth.apiclient.models.ExportRequest;
 import com.vibrenthealth.apiclient.models.ExportStatus;
+import com.vibrenthealth.apiclient.models.ParticipantProfilesExportRequest;
 import com.vibrenthealth.apiclient.models.Survey;
+import com.vibrenthealth.apiclient.models.WideFormatReportRequest;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,6 +160,177 @@ public class VibrentHealthAPIClient {
         } catch (IOException e) {
             throw new AuthenticationManager.VibrentHealthAPIError(
                     String.format(Constants.ErrorMessages.EXPORT_REQUEST_FAILED, surveyId, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request wide-format (V2) export for a specific survey
+     */
+    public String requestSurveyV2Export(int surveyId, WideFormatReportRequest exportRequest) {
+        try {
+            String endpoint = Constants.APIEndpoints.EXPORT_REQUEST_V2.replace("{survey_id}", String.valueOf(surveyId));
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", endpoint, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.EXPORT_REQUEST_FAILED, surveyId, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request EHR export for a single participant
+     */
+    public String requestEhrExport(long participantId, EHRExportRequest exportRequest) {
+        try {
+            String endpoint = Constants.APIEndpoints.EHR_EXPORT_REQUEST.replace("{participant_id}", String.valueOf(participantId));
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", endpoint, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request EHR export for multiple participants
+     */
+    public String requestMultiEhrExport(EHRExportRequest exportRequest) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", Constants.APIEndpoints.EHR_MULTI_EXPORT_REQUEST, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request device data export for a single participant
+     */
+    public String requestDeviceExport(long participantId, DeviceDataExportRequest exportRequest) {
+        try {
+            String endpoint = Constants.APIEndpoints.DEVICE_EXPORT_REQUEST.replace("{participant_id}", String.valueOf(participantId));
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", endpoint, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request device data export for multiple participants
+     */
+    public String requestMultiDeviceExport(DeviceDataExportRequest exportRequest) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", Constants.APIEndpoints.DEVICE_MULTI_EXPORT_REQUEST, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request participant profiles batch export
+     */
+    public String requestParticipantProfilesExport(ParticipantProfilesExportRequest exportRequest) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", Constants.APIEndpoints.PARTICIPANT_PROFILES_EXPORT_REQUEST, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request communication events batch export
+     */
+    public String requestCommunicationEventsExport(CommunicationEventsExportRequest exportRequest) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", Constants.APIEndpoints.COMMUNICATION_EVENTS_EXPORT_REQUEST, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
             );
         }
     }

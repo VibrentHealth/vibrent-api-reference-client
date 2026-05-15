@@ -191,6 +191,51 @@ class EHRExportRequest:
 
 
 @dataclass
+class EHRMultiExportRequest:
+    """
+    EHR data export request for multiple participants.
+
+    Used for requesting Electronic Health Record (EHR) data exports for multiple
+    participants in a single batch request within a specified date range.
+
+    Special behavior:
+    - participantIds null/empty: export for all participants in the program
+    - participantIds with values: export only specified participants
+    - participantIds are integers (Long in server DTO), unlike Comms/Profiles which use strings
+    """
+    dateFrom: int
+    dateTo: int
+    participantIds: Optional[List[int]] = None
+    manifestOnly: bool = False
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create EHRMultiExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': 0,
+            'dateTo': 0,
+            'participantIds': None,
+            'manifestOnly': False
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary, excluding None values"""
+        result = {'dateFrom': self.dateFrom, 'dateTo': self.dateTo}
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
+        result['manifestOnly'] = self.manifestOnly
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
 class Participant:
     """
     Represents a participant for EHR exports.

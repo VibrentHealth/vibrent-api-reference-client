@@ -18,8 +18,11 @@ class APIEndpoints:
     # Export endpoints - Survey (v2) with wide format support
     EXPORT_REQUEST_V2 = "/api/ext/export/v2/survey/{survey_id}/request"
 
-    # Export endpoints - EHR
+    # Export endpoints - EHR (single-participant)
     EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request"
+
+    # Export endpoints - EHR (multi-participant)
+    EHR_MULTI_EXPORT_REQUEST = "/api/ext/export/ehr/request"
 
     # Export endpoints - Device
     DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request"
