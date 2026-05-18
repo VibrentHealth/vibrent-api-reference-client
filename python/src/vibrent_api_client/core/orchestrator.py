@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .base_exporter import BaseExporter
 from .config import ConfigManager
-from .constants import ConfigKeys, ErrorMessages, ExportStatus, FileConstants, SuccessMessages, TimeConstants
+from .constants import ConfigKeys, ErrorMessages, ExportStatus, ExportType, FileConstants, SuccessMessages, TimeConstants
 from ..models import ExportMetadata
 
 
@@ -236,12 +236,30 @@ class ExportOrchestrator:
             raise
 
     def _get_items(self) -> List:
-        """Get items from exporter and update metadata."""
+        """Get items from exporter and update metadata.
+
+        For survey-based export types, if a date range is configured, the date
+        range is set on the exporter so the backend pre-filters forms to only
+        those with responses in the requested window.
+        """
+        export_type = self.exporter.get_export_type()
+
+        survey_export_types = {ExportType.SURVEY, ExportType.SURVEY_V2}
+        if export_type in survey_export_types and self.config_manager.should_use_date_range(export_type):
+            date_range = self.config_manager.get_date_range(export_type)
+            date_from = date_range["start_time"]
+            date_to = date_range["end_time"]
+            self.logger.info(
+                f"Pre-filtering forms with date range: "
+                f"{datetime.fromtimestamp(date_from / 1000, tz=timezone.utc).strftime('%Y-%m-%d')} "
+                f"to {datetime.fromtimestamp(date_to / 1000, tz=timezone.utc).strftime('%Y-%m-%d')}"
+            )
+            self.exporter.set_date_filter(date_from, date_to)
+
         items = self.exporter.get_items()
         self.export_metadata.total_surveys = len(items)
 
         if not items:
-            export_type = self.exporter.get_export_type()
             self.logger.warning(f"No {export_type} items found")
 
         return items
@@ -280,10 +298,10 @@ class ExportOrchestrator:
             start_time = date_range["start_time"]
             end_time = date_range["end_time"]
         else:
-            # Date range disabled - use None to indicate no date filtering
-            start_time = None
-            end_time = None
-            self.logger.info(f"Date range filtering is disabled for {export_type} exports")
+            # Date range disabled - use wide range (Jan 1 2000 to now) to pull all data
+            start_time = 946684800000
+            end_time = int(time.time() * 1000)
+            self.logger.info(f"Date range filtering is disabled for {export_type} exports — using full range (epoch to now)")
 
         # Get split configuration from export-specific config
         export_config = self.config_manager.get_export_config(export_type)
@@ -314,8 +332,7 @@ class ExportOrchestrator:
                     )
                 date_chunks = [{"start_time": start_time, "end_time": end_time}]
         else:
-            # No date range - create a single "chunk" with None values
-            date_chunks = [{"start_time": None, "end_time": None}]
+            date_chunks = [{"start_time": start_time, "end_time": end_time}]
 
         # Request exports for each item and chunk
         for i, item in enumerate(filtered_items):

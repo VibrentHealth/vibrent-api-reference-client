@@ -50,26 +50,31 @@ class Survey:
 @dataclass
 class ExportRequest:
     """Represents an export request"""
-    dateFrom: int
-    dateTo: int
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     format: str = "JSON"
 
     @classmethod
     def from_dict(cls, data: dict):
         """Create ExportRequest object from dictionary using JSON serialization"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0,
+            'dateFrom': None,
+            'dateTo': None,
             'format': 'JSON'
         }
-        
+
         merged_data = {**defaults, **data}
         json_str = json.dumps(merged_data)
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {'format': self.format}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -121,8 +126,8 @@ class WideFormatReportRequest:
     This request type supports the V2 API endpoint with additional features like
     PII removal, wide format reporting, and data dictionary inclusion.
     """
-    dateFrom: int
-    dateTo: int
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     fileType: str = "CSV"  # CSV or JSON
     removePII: bool = False
     completedOnly: bool = True
@@ -135,8 +140,8 @@ class WideFormatReportRequest:
     def from_dict(cls, data: dict):
         """Create WideFormatReportRequest object from dictionary"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0,
+            'dateFrom': None,
+            'dateTo': None,
             'fileType': 'CSV',
             'removePII': False,
             'completedOnly': True,
@@ -151,8 +156,21 @@ class WideFormatReportRequest:
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {
+            'fileType': self.fileType,
+            'removePII': self.removePII,
+            'completedOnly': self.completedOnly,
+            'includeWithdrawnUser': self.includeWithdrawnUser,
+            'combineValuesForMultipleChoices': self.combineValuesForMultipleChoices,
+            'choiceValueFormat': self.choiceValueFormat,
+            'userType': self.userType,
+        }
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -173,8 +191,8 @@ class EHRExportRequest:
     def from_dict(cls, data: dict):
         """Create EHRExportRequest object from dictionary"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0
+            'dateFrom': None,
+            'dateTo': None
         }
 
         merged_data = {**defaults, **data}
@@ -182,8 +200,13 @@ class EHRExportRequest:
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""

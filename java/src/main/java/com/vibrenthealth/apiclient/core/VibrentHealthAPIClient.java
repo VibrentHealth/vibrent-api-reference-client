@@ -105,10 +105,27 @@ public class VibrentHealthAPIClient {
      * Get list of available surveys
      */
     public List<Survey> getSurveys() {
+        return getSurveys(null, null);
+    }
+
+    /**
+     * Get list of available surveys filtered by date range.
+     *
+     * @param dateFrom optional start of the date range (epoch milliseconds, inclusive)
+     * @param dateTo   optional end of the date range (epoch milliseconds, inclusive)
+     * @return list of surveys matching the date range filter
+     */
+    public List<Survey> getSurveys(Long dateFrom, Long dateTo) {
         logger.info("Fetching surveys");
 
         try {
-            Response response = makeRequest("GET", Constants.APIEndpoints.SURVEYS, null);
+            String endpoint = Constants.APIEndpoints.SURVEYS;
+
+            if (dateFrom != null && dateTo != null) {
+                endpoint = endpoint + "?dateFrom=" + dateFrom + "&dateTo=" + dateTo;
+            }
+
+            Response response = makeRequest("GET", endpoint, null);
 
             if (response.body() != null) {
                 String responseBody = response.body().string();

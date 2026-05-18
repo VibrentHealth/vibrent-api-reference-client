@@ -4,7 +4,6 @@ Main API client for Vibrent Health APIs
 
 import json
 import logging
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -137,10 +136,35 @@ class VibrentHealthAPIClient:
                 ErrorMessages.API_REQUEST_FAILED.format(error=f"{str(e)}; Response content: {error_content}")
             )
 
-    def get_surveys(self) -> List[Survey]:
-        """Get list of available surveys"""
+    def get_surveys(
+        self,
+        date_from: Optional[int] = None,
+        date_to: Optional[int] = None,
+    ) -> List[Survey]:
+        """
+        Get list of available surveys (forms).
+
+        Args:
+            date_from: Optional start of date range filter in epoch milliseconds.
+                       When both date_from and date_to are provided, the API returns
+                       only forms that have responses within the specified window.
+            date_to:   Optional end of date range filter in epoch milliseconds.
+
+        Returns:
+            List of Survey objects
+        """
         self.logger.info("Fetching surveys")
-        response = self._make_request("GET", APIEndpoints.SURVEYS)
+
+        endpoint = APIEndpoints.SURVEYS
+        params: Dict[str, Any] = {}
+        if date_from is not None and date_to is not None:
+            params["dateFrom"] = date_from
+            params["dateTo"] = date_to
+            self.logger.info(
+                f"Applying date range filter: dateFrom={date_from}, dateTo={date_to}"
+            )
+
+        response = self._make_request("GET", endpoint, params=params)
 
         surveys_data = response.json()
         surveys = []
@@ -161,7 +185,7 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EXPORT_REQUEST.format(survey_id=survey_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
@@ -209,7 +233,7 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EXPORT_REQUEST_V2.format(survey_id=survey_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
@@ -248,7 +272,7 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EHR_EXPORT_REQUEST.format(participant_id=participant_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
