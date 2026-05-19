@@ -1,6 +1,6 @@
 # Vibrent Health API Client (Python)
 
-A config-driven client for exporting data from Vibrent Health APIs. Configure `vibrent_config.yaml`, set credentials, and run — the client handles authentication, form listing, export submission, polling, and download automatically.
+A Python client for exporting data from Vibrent Health APIs. Supports all export types: Survey V1, Survey V2, Bulk Survey, EHR, Device Data, Participant Profiles, and Communication Events.
 
 ## Prerequisites
 
@@ -8,9 +8,261 @@ A config-driven client for exporting data from Vibrent Health APIs. Configure `v
 - pip3
 - Access to Vibrent Health APIs (client ID and secret)
 
-## Quick Start
+## Setup
 
-### 1. Setup
+```bash
+cd python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## API Restrictions Quick Reference
+
+| Export Type | Mode | Max Participants | Max Date Range | PID Type |
+|-------------|------|------------------|----------------|----------|
+| EHR single | `/ehr/{pid}/request` | 1 (URL) | No limit | Integer |
+| EHR multi data | `/ehr/request` `manifestOnly=false` | 100 | 24 hours | Integer |
+| EHR multi manifest | `/ehr/request` `manifestOnly=true` | Unlimited | 360 days | Integer |
+| Device single | `/device/{pid}/request` | 1 (URL) | 24 hours | Integer |
+| Device multi data | `/device/request` `manifestOnly=false` | 100 | 24 hours | Integer |
+| Device multi manifest | `/device/request` `manifestOnly=true` | Unlimited | 360 days | Integer |
+| Comms data | `/communicationEvents/request` `manifestOnly=false` | 100 | 24 hours | **String** |
+| Comms manifest | `/communicationEvents/request` `manifestOnly=true` | Unlimited | 360 days | **String** |
+| Profiles | `/participantProfiles/request` | 1,000 | Optional | **String** |
+| Survey V1 | `/survey/{id}/request` | N/A | Required | N/A |
+| Survey V2 | `/v2/survey/{id}/request` | N/A | Required | N/A |
+| Bulk Survey | `/survey/request` | N/A | Max 30 days (all/multi) | N/A |
+
+---
+
+## Recommended: Programmatic Usage (Python SDK)
+
+The programmatic approach gives full control over request parameters and is the recommended way to use the client.
+
+### Authenticate
+
+```python
+import os, sys, tempfile, yaml, time
+sys.path.insert(0, "python/src")  # if running from repo root
+
+from vibrent_api_client.core.config import ConfigManager
+from vibrent_api_client.core.client import VibrentHealthAPIClient
+
+os.environ["VIBRENT_CLIENT_ID"] = "<client-id>"
+os.environ["VIBRENT_CLIENT_SECRET"] = "<your-secret>"
+
+config = {
+    "environment": {
+        "default": "staging",
+        "environments": {
+            "staging": {
+                "base_url": "<base-url>",
+                "token_url": "<token-url>",
+            }
+        },
+    },
+    "auth": {"timeout": 30, "refresh_buffer": 300},
+    "api": {"timeout": 60, "debug_logging": False},
+    "output": {"base_directory": "output", "survey_exports_dir": "survey_exports",
+               "extract_files": True, "remove_zip_after_extract": True},
+    "metadata": {"save_metadata": False},
+}
+
+fd, config_path = tempfile.mkstemp(suffix=".yaml")
+with os.fdopen(fd, "w") as f:
+    yaml.dump(config, f)
+
+config_manager = ConfigManager(config_path)
+client = VibrentHealthAPIClient(config_manager, "staging")
+client.auth_manager.authenticate()
+print(f"Authenticated: {client.auth_manager.access_token[:20]}...")
+
+os.unlink(config_path)
+```
+
+### Common Time Helpers
+
+```python
+now_ms  = int(time.time() * 1000)
+h23_ago = int((time.time() - 82800) * 1000)    # 23 hours ago
+d7_ago  = int((time.time() - 86400 * 7) * 1000)  # 7 days ago
+d30_ago = int((time.time() - 86400 * 30) * 1000) # 30 days ago
+```
+
+### EHR Exports
+
+```python
+from vibrent_api_client.models import EHRExportRequest, EHRMultiExportRequest
+
+# Single participant (no date range limit)
+request = EHRExportRequest(dateFrom=d30_ago, dateTo=now_ms)
+export_id = client.request_ehr_export(24291, request)
+
+# Multi data mode (max 100 pids, max 24h)
+request = EHRMultiExportRequest(
+    dateFrom=h23_ago, dateTo=now_ms,
+    participantIds=[24291, 24365],
+    manifestOnly=False,
+)
+export_id = client.request_multi_ehr_export(request)
+
+# Multi manifest mode (unlimited pids, max 360 days)
+request = EHRMultiExportRequest(
+    dateFrom=d7_ago, dateTo=now_ms,
+    participantIds=None,
+    manifestOnly=True,
+)
+export_id = client.request_multi_ehr_export(request)
+```
+
+### Device Data Exports
+
+```python
+from vibrent_api_client.models import DeviceDataExportRequest
+
+# Single participant (max 24h)
+request = DeviceDataExportRequest(dateFrom=h23_ago, dateTo=now_ms, manifestOnly=False)
+export_id = client.request_device_export(23760, request)
+
+# Multi with filters (max 100 pids, max 24h)
+request = DeviceDataExportRequest(
+    dateFrom=h23_ago, dateTo=now_ms,
+    participantIds=[23760, 23757],
+    deviceTypes=["FITBIT"],
+    dataTypes=["SLEEP", "HEART_RATE"],
+    manifestOnly=False,
+)
+export_id = client.request_multi_device_export(request)
+
+# Manifest mode (unlimited pids, max 360 days)
+request = DeviceDataExportRequest(
+    dateFrom=d7_ago, dateTo=now_ms,
+    manifestOnly=True,
+)
+export_id = client.request_multi_device_export(request)
+```
+
+### Communication Events Exports
+
+```python
+from vibrent_api_client.models import CommunicationEventsExportRequest
+
+# Data mode — participantIds must be STRINGS (max 100 pids, max 24h)
+request = CommunicationEventsExportRequest(
+    dateFrom=h23_ago, dateTo=now_ms,
+    participantIds=["9512", "9525"],
+    manifestOnly=False,
+)
+export_id = client.request_communication_events_export(request)
+
+# Manifest mode (unlimited pids, max 360 days)
+request = CommunicationEventsExportRequest(
+    dateFrom=d30_ago, dateTo=now_ms,
+    manifestOnly=True,
+)
+export_id = client.request_communication_events_export(request)
+```
+
+### Participant Profiles Export
+
+```python
+from vibrent_api_client.models import ParticipantProfilesExportRequest
+
+# Specific participants — participantIds must be STRINGS (max 1,000)
+request = ParticipantProfilesExportRequest(participantIds=["9512", "9525"])
+export_id = client.request_participant_profiles_export(request)
+
+# All participants
+request = ParticipantProfilesExportRequest(participantIds=None)
+export_id = client.request_participant_profiles_export(request)
+```
+
+### Survey V1 Export
+
+```python
+from vibrent_api_client.models import ExportRequest
+
+# format is REQUIRED ("JSON" or "CSV"), no date range limit
+request = ExportRequest(dateFrom=d30_ago, dateTo=now_ms, format="JSON")
+export_id = client.request_survey_export(1700, request)
+```
+
+### Survey V2 (Wide Format) Export
+
+```python
+from vibrent_api_client.models import WideFormatReportRequest
+
+request = WideFormatReportRequest(
+    dateFrom=d30_ago, dateTo=now_ms,
+    fileType="CSV",
+    removePII=True,
+    completedOnly=True,
+    userType="REAL_ONLY",
+    choiceValueFormat="VALUE_AND_TEXT",
+)
+export_id = client.request_survey_v2_export(1700, request)
+```
+
+### Bulk Survey Export
+
+```python
+from vibrent_api_client.models import BulkSurveyExportRequest
+
+# All surveys (max 30 days)
+request = BulkSurveyExportRequest(
+    dateFrom=d30_ago, dateTo=now_ms,
+    format="JSON",
+    removePII=False,
+    includeLabels=False,
+    allSurveys=True,
+    surveyIds=[],
+)
+export_id = client.request_bulk_survey_export(request)
+
+# Specific surveys (max 30 days when >1 survey)
+request = BulkSurveyExportRequest(
+    dateFrom=d30_ago, dateTo=now_ms,
+    format="JSON",
+    allSurveys=False,
+    surveyIds=[1700, 1701],
+)
+export_id = client.request_bulk_survey_export(request)
+```
+
+### Check Status, List Surveys, Download
+
+```python
+from pathlib import Path
+
+# Check status
+status = client.get_export_status(export_id)
+print(f"Status: {status.status}")              # SUBMITTED, IN_PROGRESS, COMPLETED, FAILED, NO_DATA
+print(f"File: {status.fileName}")
+print(f"Download: {status.downloadEndpoint}")  # only if COMPLETED
+
+# List surveys
+surveys = client.get_surveys()
+print(f"Found {len(surveys)} surveys")
+for s in surveys[:5]:
+    print(f"  {s.formId}: {s.formName}")
+
+# Download (when COMPLETED)
+output_path = Path("output")
+output_path.mkdir(exist_ok=True)
+file_path = client.download_export(export_id, output_path)
+print(f"Downloaded: {file_path}")
+```
+
+---
+
+## Legacy: Config-Driven Export (Deprecated)
+
+> **Note:** The config-driven utility will be discontinued in a future release. Please migrate to the programmatic SDK usage above.
+
+Configure `vibrent_config.yaml`, set credentials, and run — the orchestrator handles authentication, form listing, export submission, polling, and download automatically.
+
+### Setup
 
 ```bash
 # From the repository root
@@ -21,14 +273,14 @@ export VIBRENT_CLIENT_ID="your_client_id"
 export VIBRENT_CLIENT_SECRET="your_client_secret"
 ```
 
-### 2. Configure
+### Configure
 
 ```bash
 cp shared/config/sample_config.yaml shared/config/vibrent_config.yaml
 # Edit vibrent_config.yaml — set your API URLs and export options
 ```
 
-### 3. Run
+### Run
 
 ```bash
 # Survey V1 — per form, no date range limit, format required (JSON/CSV)
@@ -68,276 +320,33 @@ python run_export_new.py --export-type survey
 python run_export_new.py --export-type ehr
 ```
 
-## Configuration Reference
+### Configuration Reference
 
 The config file (`shared/config/vibrent_config.yaml`) has independent sections per export type. See `shared/config/sample_config.yaml` for all options with inline documentation.
 
-### Environment Setup
-
-```yaml
-environment:
-  default: "staging"
-  environments:
-    staging:
-      base_url: "YOUR_STAGING_BASE_URL_HERE"
-      token_url: "YOUR_STAGING_TOKEN_URL_HERE"
-    production:
-      base_url: "YOUR_PRODUCTION_BASE_URL_HERE"
-      token_url: "YOUR_PRODUCTION_TOKEN_URL_HERE"
-
-auth:
-  timeout: 30
-  refresh_buffer: 300
-
-api:
-  timeout: 60
-```
-
-### Survey V1 Export (`--export-type survey`)
-
-Exports survey response data per form. Each form gets its own export request.
-
-```yaml
-survey_export:
-  use_date_range: true        # false = export ALL data (wide date range)
-
-  date_range:
-    default_days_back: 7      # relative: last N days
-    # absolute_start_date: "2024-01-01"  # overrides default_days_back
-    # absolute_end_date: "2024-12-31"
-
-  split_date_range: false     # true = chunk large ranges (recommended for >6 months)
-  format: "JSON"              # JSON or CSV
-
-  request:
-    max_surveys: null          # null = all surveys
-    survey_ids: null           # [123, 456] = only these
-    exclude_survey_ids: null   # [999] = skip these
-
-  monitoring:
-    polling_interval: 10
-    max_wait_time: null
-    continue_on_failure: true
-```
-
-### Bulk Survey Export (`--export-type bulk_survey`)
-
-Exports multiple (or all) surveys in a single API call using `POST /api/ext/export/survey/request`.
-
-```yaml
-bulk_survey_export:
-  use_date_range: true
-
-  date_range:
-    default_days_back: 30     # max 30 days for bulk exports
-
-  format: "JSON"              # JSON or CSV
-  remove_pii: false           # true = exclude PII
-  include_labels: false       # true = include question labels
-
-  request:
-    all_surveys: true          # true = all surveys in one request
-    survey_ids: null           # [123, 456] = only these (when all_surveys is false)
-    exclude_survey_ids: null   # [999] = skip these (when all_surveys is false)
-
-  monitoring:
-    polling_interval: 10
-    max_wait_time: null
-    continue_on_failure: true
-```
-
-**API restrictions:** max 30 days date range when `all_surveys: true` or more than one survey ID.
-
-### Survey V2 Export (`--export-type survey_v2`)
-
-Wide-format export with PII removal, user type filtering, and choice value formatting.
-
-```yaml
-survey_v2_export:
-  use_date_range: true
-
-  date_range:
-    default_days_back: 30
-
-  split_date_range: false
-  file_type: "CSV"              # CSV or JSON
-  remove_pii: false             # true = exclude PII
-  completed_only: true          # true = only completed responses
-  include_withdrawn_user: true
-  combine_values_for_multiple_choices: true
-
-  # VALUE_ONLY | TEXT_ONLY | VALUE_AND_TEXT
-  choice_value_format: "VALUE_AND_TEXT"
-
-  # REAL_ONLY | TEST_ONLY | ALL_USERS
-  user_type: "REAL_ONLY"
-
-  request:
-    max_surveys: null
-    survey_ids: null
-    exclude_survey_ids: null
-```
-
-### EHR Export (`--export-type ehr`)
-
-Exports Electronic Health Records per participant (FHIR R4 format).
-
-```yaml
-ehr_export:
-  use_date_range: true
-
-  date_range:
-    default_days_back: 1460   # ~4 years
-
-  split_date_range: false
-
-  # Required: list of integer participant IDs
-  participant_ids: [24291, 24365]
-  max_participants: null
-  exclude_participant_ids: null
-```
-
-**API restrictions:**
-- Single participant (`/ehr/{pid}/request`): no date range limit
-- Multi data mode (`manifestOnly: false`): max 100 participants, max 24 hours
-- Multi manifest mode (`manifestOnly: true`): unlimited participants, max 360 days
-
-### Device Data Export (`--export-type device`)
-
-Exports wearable/device data with optional device and data type filters.
-
-```yaml
-device_export:
-  use_date_range: true
-
-  date_range:
-    default_days_back: 90
-
-  split_date_range: false
-
-  participant_ids: [23760, 23757]
-  max_participants: null
-  exclude_participant_ids: null
-
-  # Filter by device source (empty = all)
-  # Options: FITBIT, GARMIN, APPLE_HEALTHKIT
-  device_types: []
-
-  # Filter by data type (empty = all)
-  # Options: SLEEP, STEPS, HEART_RATE, ACTIVITY, DISTANCE, RESPIRATORY, STRESS, DAILY_SUMMARY
-  data_types: []
-
-  manifest_only: false        # true = metadata only (no data files)
-```
-
-**API restrictions:**
-- Single participant: max 24 hours
-- Multi data mode (`manifestOnly: false`): max 100 participants, max 24 hours
-- Multi manifest mode (`manifestOnly: true`): unlimited participants, max 360 days
-
-### Participant Profiles Export (`--export-type participant_profiles`)
-
-Exports current participant profile/user property data. No date range required.
-
-```yaml
-participant_profiles_export:
-  use_date_range: false       # profiles don't use date ranges
-
-  # Integer IDs in config, auto-converted to strings for API
-  # Empty [] or null = export ALL participants
-  participant_ids: []
-  max_participants: null
-  exclude_participant_ids: null
-```
-
-**API restrictions:** max 1,000 participants per request. `participantIds` are strings in the API.
-
-### Communication Events Export (`--export-type communication_events`)
-
-Exports email and SMS communication event data.
-
-```yaml
-communication_events_export:
-  use_date_range: true
-
-  date_range:
-    default_days_back: 30
-
-  split_date_range: false
-
-  # Integer IDs in config, auto-converted to strings for API
-  # Empty [] or null = ALL participants
-  participant_ids: []
-  max_participants: null
-  exclude_participant_ids: null
-
-  # Filter by source (empty = all)
-  # Options: ITERABLE, SES, TWILIO
-  event_sources: []
-
-  # Filter by event type (empty = all)
-  # Email: EMAIL_SENT, EMAIL_DELIVERY, EMAIL_OPEN, EMAIL_CLICK, EMAIL_BOUNCE,
-  #        EMAIL_COMPLAINT, EMAIL_UNSUBSCRIBE, EMAIL_SEND_SKIP
-  # SMS:   SMS_SEND, SMS_DELIVERED, SMS_BOUNCE, SMS_SEND_SKIP
-  event_types: []
-
-  manifest_only: false
-```
-
-**API restrictions:**
-- Data mode (`manifestOnly: false`): max 100 participants, max 24 hours. `participantIds` required (strings).
-- Manifest mode (`manifestOnly: true`): unlimited participants, max 360 days
-
-## What It Does
-
-The orchestrator (`run_export_new.py`) automates the full workflow:
-
-1. Authenticates using client credentials (OAuth2)
-2. Lists available forms (`GET /api/ext/forms`)
-3. Applies config filters (survey_ids, exclude_survey_ids, max_surveys)
-4. For each item: submits export request, polls status, downloads when complete
-5. Saves files to `output/` directory with metadata
-
-### `use_date_range` Behavior
-
-| Setting | Behavior |
-|---------|----------|
-| `true`  | Uses the `date_range` section (relative or absolute) |
-| `false` | Sends wide date range (Jan 1, 2000 to now) to pull ALL data |
-
-## Output
-
-```
-python/output/
-  survey_exports/           # or ehr_exports/, device_exports/, etc.
-    survey_name_part_1.json
-    survey_name_merged.json
-  logs/
-    export_2026-05-18_14-30-00.log
-  export_metadata.json
-```
+---
 
 ## Export Status Lifecycle
 
 ```
-SUBMITTED → IN_PROGRESS → COMPLETED → (download available)
-                        → FAILED     → (check failureReason)
-                        → NO_DATA    → (no data in date range)
+SUBMITTED -> IN_PROGRESS -> COMPLETED -> (download available)
+                         -> FAILED     -> (check failureReason)
+                         -> NO_DATA    -> (no data in date range)
 ```
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| 401 Unauthorized | Token expired or wrong credentia<br/>ls | Check `VIBRENT_CLIENT_ID` / `VIBRENT_CLIENT_SECRET` |
-| 400 `format is required` | Survey V1 missing format | Set `format: "JSON"` in config |
-| 400 date range >24h | Data mode limit exceeded | Use ≤23h range or set `manifest_only: true` |
-| 400 participantIds required | Data mode needs participant IDs | Add `participant_ids` in config or use manifest mode |
+| 401 Unauthorized | Token expired or wrong credentials | Check `VIBRENT_CLIENT_ID` / `VIBRENT_CLIENT_SECRET` |
+| 400 `format is required` | Survey V1 missing format | Set `format: "JSON"` |
+| 400 date range >24h | Data mode limit exceeded | Use <=23h range or set `manifestOnly: true` |
+| 400 participantIds required | Data mode needs participant IDs | Add participantIds or use manifest mode |
 | FAILED status | Server-side job error | Check `failureReason` in status response |
-| 400 invalid survey id | Survey doesn't exist in program | Run `--list-types` or check `/api/ext/forms` |
-| Configuration not found | Missing config file | Copy `sample_config.yaml` to `vibrent_config.yaml` |
+| 400 invalid survey id | Survey doesn't exist in program | Call `/api/ext/forms` to list valid IDs |
 
 ## Documentation
 
 - See `shared/config/sample_config.yaml` for all configuration options with inline docs
 - See the main repository `README.md` for cross-language details
+- See [Export API Manual Test Guide](https://vibrenthealth.atlassian.net/wiki/spaces/DA/pages/15808954397) for curl examples and full API reference

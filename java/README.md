@@ -112,7 +112,7 @@ survey_export:
 
 For export types beyond survey V1, use the Java SDK classes directly. All export types are available programmatically.
 
-### Survey V1
+### Survey V1 (Deprecated)
 
 ```java
 import com.vibrenthealth.apiclient.core.*;
@@ -133,7 +133,7 @@ request.setFormat("JSON");
 String exportId = client.requestSurveyExport(1700, request);
 ```
 
-### Survey V2 (Wide Format)
+### Survey V2 (Wide Format) - Recommended to export the Survey Responses
 
 ```java
 WideFormatReportRequest v2Request = new WideFormatReportRequest();
