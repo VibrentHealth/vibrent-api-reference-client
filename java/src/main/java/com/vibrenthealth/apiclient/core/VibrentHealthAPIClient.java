@@ -3,6 +3,7 @@ package com.vibrenthealth.apiclient.core;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vibrenthealth.apiclient.models.BulkSurveyExportRequest;
 import com.vibrenthealth.apiclient.models.CommunicationEventsExportRequest;
 import com.vibrenthealth.apiclient.models.DeviceDataExportRequest;
 import com.vibrenthealth.apiclient.models.EHRExportRequest;
@@ -337,6 +338,34 @@ public class VibrentHealthAPIClient {
 
             RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
             Response response = makeRequest("POST", Constants.APIEndpoints.COMMUNICATION_EVENTS_EXPORT_REQUEST, body);
+
+            if (response.body() != null) {
+                String responseBody = response.body().string();
+                JsonNode exportData = objectMapper.readTree(responseBody);
+                return exportData.get("exportId").asText();
+            } else {
+                throw new AuthenticationManager.VibrentHealthAPIError("Empty response body");
+            }
+        } catch (IOException e) {
+            throw new AuthenticationManager.VibrentHealthAPIError(
+                    String.format(Constants.ErrorMessages.API_REQUEST_FAILED, e.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Request bulk survey export for multiple surveys in a single call
+     */
+    public String requestBulkSurveyExport(BulkSurveyExportRequest exportRequest) {
+        try {
+            logger.info("Requesting bulk survey export (dateFrom={}, dateTo={}, allSurveys={})",
+                    exportRequest.getDateFrom(), exportRequest.getDateTo(),
+                    exportRequest.getSurveyData() != null ? exportRequest.getSurveyData().isAllSurveys() : "null");
+
+            String jsonBody = objectMapper.writeValueAsString(exportRequest);
+
+            RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
+            Response response = makeRequest("POST", Constants.APIEndpoints.BULK_SURVEY_EXPORT_REQUEST, body);
 
             if (response.body() != null) {
                 String responseBody = response.body().string();

@@ -5,6 +5,7 @@ Data models for Vibrent Health API Client
 from .data_models import (
     Survey,
     ExportRequest,
+    BulkSurveyExportRequest,
     ExportStatus,
     ExportMetadata,
     WideFormatReportRequest,
@@ -23,6 +24,7 @@ from .data_models import (
 __all__ = [
     "Survey",
     "ExportRequest",
+    "BulkSurveyExportRequest",
     "ExportStatus",
     "ExportMetadata",
     "WideFormatReportRequest",

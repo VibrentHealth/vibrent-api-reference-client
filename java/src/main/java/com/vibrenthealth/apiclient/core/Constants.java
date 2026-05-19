@@ -36,6 +36,9 @@ public class Constants {
 
         // Communication Events
         public static final String COMMUNICATION_EVENTS_EXPORT_REQUEST = "/api/ext/export/communicationEvents/request";
+
+        // Bulk Survey Export
+        public static final String BULK_SURVEY_EXPORT_REQUEST = "/api/ext/export/survey/request";
     }
     
     // Export Status Constants

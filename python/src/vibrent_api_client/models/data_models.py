@@ -82,6 +82,75 @@ class ExportRequest:
 
 
 @dataclass
+class BulkSurveyExportRequest:
+    """
+    Bulk survey export request.
+
+    Used for requesting export of multiple surveys in a single API call instead of
+    requesting them one-by-one. Supports exporting all surveys for a program or a
+    specific subset identified by survey IDs.
+
+    Special behavior:
+    - allSurveys=True: exports all surveys for the authenticated program (surveyIds ignored)
+    - allSurveys=False: exports only the surveys specified in surveyIds
+    """
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
+    format: str = "JSON"
+    removePII: bool = False
+    includeLabels: bool = False
+    allSurveys: bool = True
+    surveyIds: Optional[List[int]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create BulkSurveyExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': None,
+            'dateTo': None,
+            'format': 'JSON',
+            'removePII': False,
+            'includeLabels': False,
+            'allSurveys': True,
+            'surveyIds': None
+        }
+
+        # Handle nested surveyData structure from API response
+        merged_data = {**defaults, **data}
+        if 'surveyData' in merged_data:
+            survey_data = merged_data.pop('surveyData')
+            if isinstance(survey_data, dict):
+                if 'allSurveys' in survey_data:
+                    merged_data['allSurveys'] = survey_data['allSurveys']
+                if 'surveyIds' in survey_data:
+                    merged_data['surveyIds'] = survey_data['surveyIds']
+
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary with nested surveyData structure for API request"""
+        result: Dict[str, Any] = {
+            'format': self.format,
+            'removePII': self.removePII,
+            'includeLabels': self.includeLabels,
+            'surveyData': {
+                'allSurveys': self.allSurveys,
+                'surveyIds': self.surveyIds if self.surveyIds is not None else []
+            }
+        }
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
 class ExportStatus:
     """Represents the status of an export request"""
     exportId: str

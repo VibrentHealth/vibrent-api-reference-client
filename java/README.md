@@ -189,6 +189,39 @@ ExportRequest request = new ExportRequest(
 );
 ```
 
+### Bulk Survey Export
+
+Export multiple (or all) surveys in a single API call instead of one request per survey.
+
+```java
+import com.vibrenthealth.apiclient.models.BulkSurveyExportRequest;
+
+// Export all surveys for the program
+BulkSurveyExportRequest.SurveyData allData = new BulkSurveyExportRequest.SurveyData(true, null);
+BulkSurveyExportRequest allRequest = new BulkSurveyExportRequest(
+    System.currentTimeMillis() - (30 * 24 * 60 * 60 * 1000L), // 30 days ago
+    System.currentTimeMillis(),                                 // now
+    "JSON",
+    false,  // removePII
+    false,  // includeLabels
+    allData
+);
+String exportId = client.requestBulkSurveyExport(allRequest);
+
+// Export specific surveys by ID
+BulkSurveyExportRequest.SurveyData specificData =
+    new BulkSurveyExportRequest.SurveyData(false, List.of(101, 202, 303));
+BulkSurveyExportRequest specificRequest = new BulkSurveyExportRequest(
+    System.currentTimeMillis() - (30 * 24 * 60 * 60 * 1000L),
+    System.currentTimeMillis(),
+    "JSON",
+    true,   // removePII
+    true,   // includeLabels
+    specificData
+);
+String exportId2 = client.requestBulkSurveyExport(specificRequest);
+```
+
 ## Output Structure
 
 The Java implementation creates the same output structure as Python:

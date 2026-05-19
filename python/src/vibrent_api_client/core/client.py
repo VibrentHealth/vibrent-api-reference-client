@@ -15,6 +15,7 @@ from .constants import APIEndpoints, ErrorMessages, Headers, TimeConstants
 from ..models import (
     Survey,
     ExportRequest,
+    BulkSurveyExportRequest,
     ExportStatus,
     WideFormatReportRequest,
     EHRExportRequest,
@@ -240,6 +241,74 @@ class VibrentHealthAPIClient:
         export_id = export_data["exportId"]
 
         self.logger.info(f"Survey V2 export requested successfully: {export_id}")
+        return export_id
+
+    def request_bulk_survey_export(self, export_request: BulkSurveyExportRequest) -> str:
+        """
+        Request bulk survey export for multiple surveys in a single API call.
+
+        This API endpoint allows you to export survey response data for multiple surveys
+        (or all surveys) in a single batch request, rather than requesting exports
+        one-by-one per survey.
+
+        Args:
+            export_request: BulkSurveyExportRequest with survey selection and options
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - allSurveys=True: exports all surveys for the authenticated program
+            - allSurveys=False with surveyIds: exports only the specified surveys
+
+        Example:
+            >>> # Export all surveys in a date range
+            >>> request = BulkSurveyExportRequest(
+            ...     dateFrom=1716019200000,
+            ...     dateTo=1716105600000,
+            ...     format="JSON",
+            ...     allSurveys=True
+            ... )
+            >>> export_id = client.request_bulk_survey_export(request)
+            >>>
+            >>> # Export specific surveys
+            >>> request = BulkSurveyExportRequest(
+            ...     dateFrom=1716019200000,
+            ...     dateTo=1716105600000,
+            ...     format="JSON",
+            ...     allSurveys=False,
+            ...     surveyIds=[101, 202, 303]
+            ... )
+            >>> export_id = client.request_bulk_survey_export(request)
+        """
+        survey_count = "all surveys" if export_request.allSurveys else f"{len(export_request.surveyIds) if export_request.surveyIds else 0} survey(s)"
+        self.logger.info(f"Requesting bulk survey export for {survey_count}")
+
+        if export_request.allSurveys:
+            self.logger.debug("Exporting all surveys for the program")
+        elif export_request.surveyIds:
+            self.logger.debug(f"Survey IDs: {export_request.surveyIds[:10]}{'...' if len(export_request.surveyIds) > 10 else ''}")
+        else:
+            self.logger.debug("No survey IDs specified and allSurveys is False")
+
+        if export_request.dateFrom and export_request.dateTo:
+            self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+
+        self.logger.debug(f"Format: {export_request.format}, removePII: {export_request.removePII}, includeLabels: {export_request.includeLabels}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.BULK_SURVEY_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Bulk survey export requested successfully: {export_id}")
         return export_id
 
     def request_ehr_export(self, participant_id: int, export_request: EHRExportRequest) -> str:

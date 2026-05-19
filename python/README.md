@@ -33,6 +33,37 @@ This directory contains the Python reference implementation for accessing Vibren
   - Merged files: `survey_name_merged.json` (combines all parts)
 - All timestamps use UTC timezone for consistency.
 
+## Bulk Survey Export
+
+Export multiple (or all) surveys in a single API call instead of one request per survey.
+
+```python
+from vibrent_api_client.models import BulkSurveyExportRequest
+
+# Export all surveys for the program
+request = BulkSurveyExportRequest(
+    dateFrom=1716019200000,
+    dateTo=1716105600000,
+    format="JSON",
+    allSurveys=True,
+    removePII=False,
+    includeLabels=False,
+)
+export_id = client.request_bulk_survey_export(request)
+
+# Export specific surveys by ID
+request = BulkSurveyExportRequest(
+    dateFrom=1716019200000,
+    dateTo=1716105600000,
+    format="JSON",
+    allSurveys=False,
+    surveyIds=[101, 202, 303],
+    removePII=True,
+    includeLabels=True,
+)
+export_id = client.request_bulk_survey_export(request)
+```
+
 ## Documentation
 - See the main repository `README.md` and `CONFIGURATION.md` for cross-language details.
 - See this file for Python-specific instructions. 
