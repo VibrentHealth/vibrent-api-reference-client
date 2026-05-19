@@ -31,25 +31,25 @@ cp shared/config/sample_config.yaml shared/config/vibrent_config.yaml
 ### 3. Run
 
 ```bash
-# Survey V1 export
+# Survey V1 — per form, no date range limit, format required (JSON/CSV)
 ./run_python_client.sh --export-type survey
 
-# Survey V2 (wide format)
+# Survey V2 — wide format, no date range limit, supports PII removal and user type filtering
 ./run_python_client.sh --export-type survey_v2
 
-# Bulk survey (all/multiple surveys in one request)
+# Bulk Survey — all/multiple surveys in one request, max 30 days when all_surveys or >1 survey
 ./run_python_client.sh --export-type bulk_survey
 
-# EHR export
+# EHR — single: no limit | multi data: max 100 participants, max 24h | multi manifest: max 360 days
 ./run_python_client.sh --export-type ehr
 
-# Device data export
+# Device — single: max 24h | multi data: max 100 participants, max 24h | multi manifest: max 360 days
 ./run_python_client.sh --export-type device
 
-# Participant profiles
+# Participant Profiles — no date range required, max 1,000 participants per request
 ./run_python_client.sh --export-type participant_profiles
 
-# Communication events
+# Communication Events — data: max 100 participants, max 24h | manifest: max 360 days
 ./run_python_client.sh --export-type communication_events
 
 # List all available export types
