@@ -21,6 +21,7 @@ sys.path.insert(0, SDK_PATH)
 
 from vibrent_api_client.core.constants import APIEndpoints
 from vibrent_api_client.models import (
+    BulkSurveyExportRequest,
     CommunicationEventsExportRequest,
     DeviceDataExportRequest,
     EHRExportRequest,
@@ -200,8 +201,21 @@ with tabs[0]:
     st.subheader("List Available Surveys")
     st.caption(f"GET {APIEndpoints.SURVEYS}")
 
+    use_date_filter = st.checkbox("Filter by response date range", key="survey_date_filter")
+    survey_endpoint = APIEndpoints.SURVEYS
+    if use_date_filter:
+        col_from, col_to = st.columns(2)
+        with col_from:
+            sf_date_from = st.date_input("Date From", value=datetime.now() - timedelta(days=1), key="sf_date_from")
+        with col_to:
+            sf_date_to = st.date_input("Date To", value=datetime.now(), key="sf_date_to")
+        survey_endpoint = (
+            f"{APIEndpoints.SURVEYS}?dateFrom={epoch_ms(datetime.combine(sf_date_from, datetime.min.time()))}"
+            f"&dateTo={epoch_ms(datetime.combine(sf_date_to, datetime.max.time()))}"
+        )
+
     if st.button("Fetch Surveys", key="fetch_surveys"):
-        result = make_authenticated_request("GET", APIEndpoints.SURVEYS)
+        result = make_authenticated_request("GET", survey_endpoint)
         if result:
             data = show_request_response(result, "Surveys fetch")
             if data and isinstance(data, list):
@@ -220,11 +234,14 @@ with tabs[1]:
 
     mode = st.radio("Mode", ["Single Survey", "Multi Survey"], key="sv1_mode", horizontal=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        sv1_date_from = st.date_input("Date From", value=datetime.now() - timedelta(days=7), key="sv1_df")
-    with col2:
-        sv1_date_to = st.date_input("Date To", value=datetime.now(), key="sv1_dt")
+    sv1_all_data = st.checkbox("Export all data (no date filter)", key="sv1_all_data")
+
+    if not sv1_all_data:
+        col1, col2 = st.columns(2)
+        with col1:
+            sv1_date_from = st.date_input("Date From", value=datetime.now() - timedelta(days=7), key="sv1_df")
+        with col2:
+            sv1_date_to = st.date_input("Date To", value=datetime.now(), key="sv1_dt")
 
     sv1_format = st.selectbox("Format", ["JSON", "CSV"], key="sv1_fmt")
 
@@ -232,21 +249,41 @@ with tabs[1]:
         sv1_survey_id = st.number_input("Survey ID", min_value=1, step=1, key="sv1_sid")
         endpoint = APIEndpoints.EXPORT_REQUEST.format(survey_id=int(sv1_survey_id))
     else:
-        sv1_survey_ids_text = st.text_input("Survey IDs (comma-separated)", key="sv1_sids", placeholder="123, 456, 789")
-        endpoint = "/api/ext/export/survey/request"
+        sv1_all_surveys = st.checkbox("All Surveys", value=True, key="sv1_all_surveys")
+        if not sv1_all_surveys:
+            sv1_survey_ids_text = st.text_input(
+                "Survey IDs (comma-separated)", key="sv1_sids", placeholder="123, 456, 789"
+            )
+        sv1_remove_pii = st.checkbox("Remove PII", value=False, key="sv1_remove_pii")
+        sv1_include_labels = st.checkbox("Include Labels", value=False, key="sv1_include_labels")
+        endpoint = APIEndpoints.BULK_SURVEY_EXPORT_REQUEST
 
     st.caption(f"POST {endpoint}")
 
     if st.button("Request Survey V1 Export", key="sv1_submit"):
-        req = ExportRequest(
-            dateFrom=epoch_ms(datetime.combine(sv1_date_from, datetime.min.time())),
-            dateTo=epoch_ms(datetime.combine(sv1_date_to, datetime.max.time())),
-            format=sv1_format,
-        )
-        body = req.to_dict()
-        if mode == "Multi Survey":
-            ids = parse_ids_long(sv1_survey_ids_text)
-            body["surveyData"] = {"allSurveys": ids is None, "surveyIds": ids or []}
+        if sv1_all_data:
+            date_from = 946684800000
+            date_to = epoch_ms(datetime.now())
+        else:
+            date_from = epoch_ms(datetime.combine(sv1_date_from, datetime.min.time()))
+            date_to = epoch_ms(datetime.combine(sv1_date_to, datetime.max.time()))
+
+        if mode == "Single Survey":
+            req = ExportRequest(dateFrom=date_from, dateTo=date_to, format=sv1_format)
+            body = req.to_dict()
+        else:
+            survey_ids = None if sv1_all_surveys else parse_ids_long(sv1_survey_ids_text)
+            req = BulkSurveyExportRequest(
+                dateFrom=date_from,
+                dateTo=date_to,
+                format=sv1_format,
+                removePII=sv1_remove_pii,
+                includeLabels=sv1_include_labels,
+                allSurveys=sv1_all_surveys,
+                surveyIds=survey_ids,
+            )
+            body = req.to_dict()
+
         result = make_authenticated_request("POST", endpoint, body)
         show_request_response(result, "Survey V1 Export")
 
@@ -258,11 +295,14 @@ with tabs[2]:
 
     sv2_survey_id = st.number_input("Survey ID", min_value=1, step=1, key="sv2_sid")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        sv2_date_from = st.date_input("Date From (optional)", value=None, key="sv2_df")
-    with col2:
-        sv2_date_to = st.date_input("Date To (optional)", value=None, key="sv2_dt")
+    sv2_all_data = st.checkbox("Export all data (no date filter)", key="sv2_all_data")
+
+    if not sv2_all_data:
+        col1, col2 = st.columns(2)
+        with col1:
+            sv2_date_from = st.date_input("Date From (optional)", value=None, key="sv2_df")
+        with col2:
+            sv2_date_to = st.date_input("Date To (optional)", value=None, key="sv2_dt")
 
     sv2_file_type = st.selectbox("File Type", ["CSV", "JSON"], key="sv2_ft")
     sv2_remove_pii = st.checkbox("Remove PII", value=False, key="sv2_pii")
@@ -278,9 +318,15 @@ with tabs[2]:
     st.caption(f"POST {endpoint}")
 
     if st.button("Request Survey V2 Export", key="sv2_submit"):
+        if sv2_all_data:
+            sv2_df_val = 946684800000
+            sv2_dt_val = epoch_ms(datetime.now())
+        else:
+            sv2_df_val = epoch_ms(datetime.combine(sv2_date_from, datetime.min.time())) if sv2_date_from else None
+            sv2_dt_val = epoch_ms(datetime.combine(sv2_date_to, datetime.max.time())) if sv2_date_to else None
         req = WideFormatReportRequest(
-            dateFrom=epoch_ms(datetime.combine(sv2_date_from, datetime.min.time())) if sv2_date_from else 0,
-            dateTo=epoch_ms(datetime.combine(sv2_date_to, datetime.max.time())) if sv2_date_to else 0,
+            dateFrom=sv2_df_val,
+            dateTo=sv2_dt_val,
             fileType=sv2_file_type,
             removePII=sv2_remove_pii,
             completedOnly=sv2_completed_only,

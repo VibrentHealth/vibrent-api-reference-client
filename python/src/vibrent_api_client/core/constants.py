@@ -209,6 +209,7 @@ class ExportType:
     """Export type identifiers"""
     SURVEY = "survey"
     SURVEY_V2 = "survey_v2"
+    BULK_SURVEY = "bulk_survey"
     EHR = "ehr"
     DEVICE = "device"
     PARTICIPANT_PROFILES = "participant_profiles"

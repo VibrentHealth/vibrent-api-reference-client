@@ -56,6 +56,9 @@ output:
   # Survey exports directory (will be created under base_directory)
   survey_exports_dir: "survey_exports"
 
+  # Bulk survey exports directory
+  bulk_survey_exports_dir: "bulk_survey_exports"
+
   # EHR exports directory
   ehr_exports_dir: "ehr_exports"
 
@@ -142,6 +145,55 @@ survey_export:
     # Survey IDs to exclude from export (null for no exclusions)
     # Example: [999, 888, 777] - exclude these specific surveys
     # Note: This is ignored if survey_ids is specified
+    exclude_survey_ids: null
+
+# ============================================
+# BULK SURVEY EXPORT CONFIGURATION
+# Export multiple (or all) surveys in a single API call
+# Uses POST /api/ext/export/survey/request
+# Used when: python run_export.py --export-type bulk_survey
+# ============================================
+bulk_survey_export:
+  # Date range configuration
+  # IMPORTANT: Max 30 days when allSurveys=true or more than one survey ID
+  use_date_range: true
+
+  date_range:
+    # Use relative date range (last N days)
+    # Max 30 days for bulk exports
+    default_days_back: 30
+
+    # OR use absolute date range (these override default_days_back if specified)
+    # Uncomment and set these to use absolute dates instead of relative
+    # absolute_start_date: "2024-01-01"
+    # absolute_end_date: "2024-01-31"
+
+  # Export format
+  # Options: JSON or CSV
+  format: "JSON"
+
+  # PII and label options
+  remove_pii: false
+  include_labels: false
+
+  # Monitoring configuration
+  monitoring:
+    polling_interval: 10
+    max_wait_time: null
+    continue_on_failure: true
+
+  # Survey selection
+  request:
+    # true = export ALL surveys for the program in one request
+    # false = export only surveys specified in survey_ids
+    all_surveys: true
+
+    # Specific survey IDs to export (only used when all_surveys is false)
+    # Example: [123, 456, 789]
+    survey_ids: null
+
+    # Survey IDs to exclude (only used when all_surveys is false)
+    # Example: [999, 888]
     exclude_survey_ids: null
 
 # ============================================

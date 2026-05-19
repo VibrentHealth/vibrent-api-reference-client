@@ -244,7 +244,7 @@ class ExportOrchestrator:
         """
         export_type = self.exporter.get_export_type()
 
-        survey_export_types = {ExportType.SURVEY, ExportType.SURVEY_V2}
+        survey_export_types = {ExportType.SURVEY, ExportType.SURVEY_V2, ExportType.BULK_SURVEY}
         if export_type in survey_export_types and self.config_manager.should_use_date_range(export_type):
             date_range = self.config_manager.get_date_range(export_type)
             date_from = date_range["start_time"]
