@@ -115,7 +115,7 @@ class ExportOrchestrator:
             output_directory=str(self.output_dir),
             surveys=[],
             failures=[],
-            failuresV2=[]
+            failed_exports_details=[]
         )
 
         self.logger.info(f"Initialized ExportOrchestrator for {export_type} exports")
@@ -474,12 +474,12 @@ class ExportOrchestrator:
                             "status": asdict(status)
                         })
 
-                        # Also update the matching export_detail and build failuresV2 entry
+                        # Also update the matching export_detail and build failed_exports_details entry
                         for item in self.export_metadata.surveys:
                             for export_detail in item['export_details']:
                                 if export_detail['exportId'] == export_id:
                                     export_detail['status'] = asdict(status)
-                                    self.export_metadata.failuresV2.append({
+                                    self.export_metadata.failed_exports_details.append({
                                         "id": item.get("id"),
                                         "name": item.get("name"),
                                         "displayName": item.get("displayName"),
