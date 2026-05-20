@@ -117,7 +117,7 @@ class ErrorMessages:
     
     # Export errors
     NO_SURVEYS_FOUND = "No surveys found"
-    EXPORT_REQUEST_FAILED = "Failed to request export for survey {survey_id}: {error}"
+    EXPORT_REQUEST_FAILED = "Failed to request export for {survey_id}: {error}"
     EXPORT_DOWNLOAD_FAILED = "Failed to download export {export_id}: {error}"
     
     # Configuration errors
