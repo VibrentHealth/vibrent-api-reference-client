@@ -107,8 +107,8 @@ class DeviceExporter(BaseExporter):
         """
         Create a device data export request.
 
-        Uses single-participant endpoint (24h limit) when 1 participant
-        and manifestOnly=false. Uses multi-participant endpoint otherwise.
+        Always uses multi-participant endpoint since both single and multi
+        have the same 24h data mode limit, but multi supports 360-day manifest mode.
         """
         device_config = self.get_config_section()
         participant_ids = getattr(item, 'batch_participant_ids', None)
@@ -141,50 +141,28 @@ class DeviceExporter(BaseExporter):
         date_from = date_range.get('start_time')
         date_to = date_range.get('end_time')
 
-        use_single = not manifest_only and participant_ids and len(participant_ids) == 1
+        request = DeviceDataExportRequest(
+            dateFrom=date_from,
+            dateTo=date_to,
+            participantIds=participant_ids,
+            deviceTypes=device_types,
+            dataTypes=data_types,
+            manifestOnly=manifest_only
+        )
 
-        if use_single:
-            request = DeviceDataExportRequest(
-                dateFrom=date_from,
-                dateTo=date_to,
-                deviceTypes=device_types,
-                dataTypes=data_types,
-                manifestOnly=manifest_only
-            )
-            self.logger.debug(
-                f"Created device single-participant request: "
-                f"participant={participant_ids[0]}, dateFrom={date_from}, dateTo={date_to}"
-            )
-        else:
-            request = DeviceDataExportRequest(
-                dateFrom=date_from,
-                dateTo=date_to,
-                participantIds=participant_ids,
-                deviceTypes=device_types,
-                dataTypes=data_types,
-                manifestOnly=manifest_only
-            )
-            self.logger.debug(
-                f"Created device batch export request: "
-                f"{len(participant_ids) if participant_ids else 'all'} participants, "
-                f"dateFrom={date_from}, dateTo={date_to}, manifestOnly={manifest_only}"
-            )
+        self.logger.debug(
+            f"Created device batch export request: "
+            f"{len(participant_ids) if participant_ids else 'all'} participants, "
+            f"dateFrom={date_from}, dateTo={date_to}, manifestOnly={manifest_only}"
+        )
 
         return request
 
     def request_export(self, item: Participant, export_request: DeviceDataExportRequest) -> str:
         """
-        Route to the appropriate endpoint based on participant count and mode.
-
-        Single participant + data mode → /device/{pid}/request (single endpoint)
-        Multiple participants or manifest mode → /device/request (batch endpoint)
+        Always uses multi-participant endpoint /device/request.
+        Both single and multi have 24h data mode limit, but multi supports 360-day manifest.
         """
-        participant_ids = getattr(item, 'batch_participant_ids', None)
-        manifest_only = export_request.manifestOnly if hasattr(export_request, 'manifestOnly') else False
-
-        if not manifest_only and participant_ids and len(participant_ids) == 1:
-            return self.client.request_device_export(participant_ids[0], export_request)
-
         return self.client.request_multi_device_export(export_request)
 
     def get_item_identifier(self, item: Participant) -> str:

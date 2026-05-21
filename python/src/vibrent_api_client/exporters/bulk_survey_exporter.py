@@ -69,7 +69,7 @@ class BulkSurveyExporter(BaseExporter):
         survey_ids = request_config.get("survey_ids")
         exclude_survey_ids = request_config.get("exclude_survey_ids")
 
-        if all_surveys:
+        if all_surveys and not exclude_survey_ids:
             self.logger.info("Bulk export mode: all surveys")
             return [BulkSurveyItem(survey_ids=[], all_surveys=True,
                                    displayName="Bulk Survey Export (All Surveys)")]
@@ -79,11 +79,14 @@ class BulkSurveyExporter(BaseExporter):
 
         filtered_ids = []
         for survey in surveys:
-            if survey_ids is not None and survey.platformFormId not in survey_ids:
+            if not all_surveys and survey_ids is not None and survey.platformFormId not in survey_ids:
                 continue
             if exclude_survey_ids and survey.platformFormId in exclude_survey_ids:
                 continue
             filtered_ids.append(survey.platformFormId)
+
+        if all_surveys and exclude_survey_ids:
+            self.logger.info(f"Excluded {len(exclude_survey_ids)} survey(s) from all-surveys export")
 
         self.logger.info(f"Filtered to {len(filtered_ids)} survey IDs for bulk export")
         return [BulkSurveyItem(
