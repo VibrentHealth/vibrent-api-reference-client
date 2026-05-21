@@ -50,26 +50,100 @@ class Survey:
 @dataclass
 class ExportRequest:
     """Represents an export request"""
-    dateFrom: int
-    dateTo: int
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     format: str = "JSON"
 
     @classmethod
     def from_dict(cls, data: dict):
         """Create ExportRequest object from dictionary using JSON serialization"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0,
+            'dateFrom': None,
+            'dateTo': None,
             'format': 'JSON'
         }
-        
+
         merged_data = {**defaults, **data}
         json_str = json.dumps(merged_data)
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {'format': self.format}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
+class BulkSurveyExportRequest:
+    """
+    Bulk survey export request.
+
+    Used for requesting export of multiple surveys in a single API call instead of
+    requesting them one-by-one. Supports exporting all surveys for a program or a
+    specific subset identified by survey IDs.
+
+    Special behavior:
+    - allSurveys=True: exports all surveys for the authenticated program (surveyIds ignored)
+    - allSurveys=False: exports only the surveys specified in surveyIds
+    """
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
+    format: str = "JSON"
+    removePII: bool = False
+    includeLabels: bool = False
+    allSurveys: bool = True
+    surveyIds: Optional[List[int]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create BulkSurveyExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': None,
+            'dateTo': None,
+            'format': 'JSON',
+            'removePII': False,
+            'includeLabels': False,
+            'allSurveys': True,
+            'surveyIds': None
+        }
+
+        # Handle nested surveyData structure from API response
+        merged_data = {**defaults, **data}
+        if 'surveyData' in merged_data:
+            survey_data = merged_data.pop('surveyData')
+            if isinstance(survey_data, dict):
+                if 'allSurveys' in survey_data:
+                    merged_data['allSurveys'] = survey_data['allSurveys']
+                if 'surveyIds' in survey_data:
+                    merged_data['surveyIds'] = survey_data['surveyIds']
+
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary with nested surveyData structure for API request"""
+        result: Dict[str, Any] = {
+            'format': self.format,
+            'removePII': self.removePII,
+            'includeLabels': self.includeLabels,
+            'surveyData': {
+                'allSurveys': self.allSurveys,
+                'surveyIds': self.surveyIds if self.surveyIds is not None else []
+            }
+        }
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -121,8 +195,8 @@ class WideFormatReportRequest:
     This request type supports the V2 API endpoint with additional features like
     PII removal, wide format reporting, and data dictionary inclusion.
     """
-    dateFrom: int
-    dateTo: int
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     fileType: str = "CSV"  # CSV or JSON
     removePII: bool = False
     completedOnly: bool = True
@@ -135,8 +209,8 @@ class WideFormatReportRequest:
     def from_dict(cls, data: dict):
         """Create WideFormatReportRequest object from dictionary"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0,
+            'dateFrom': None,
+            'dateTo': None,
             'fileType': 'CSV',
             'removePII': False,
             'completedOnly': True,
@@ -151,8 +225,21 @@ class WideFormatReportRequest:
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {
+            'fileType': self.fileType,
+            'removePII': self.removePII,
+            'completedOnly': self.completedOnly,
+            'includeWithdrawnUser': self.includeWithdrawnUser,
+            'combineValuesForMultipleChoices': self.combineValuesForMultipleChoices,
+            'choiceValueFormat': self.choiceValueFormat,
+            'userType': self.userType,
+        }
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -173,8 +260,8 @@ class EHRExportRequest:
     def from_dict(cls, data: dict):
         """Create EHRExportRequest object from dictionary"""
         defaults = {
-            'dateFrom': 0,
-            'dateTo': 0
+            'dateFrom': None,
+            'dateTo': None
         }
 
         merged_data = {**defaults, **data}
@@ -182,8 +269,58 @@ class EHRExportRequest:
         return cls(**json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return asdict(self)
+        """Convert to dictionary, excluding None values"""
+        result = {}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string"""
+        return json.dumps(self.to_dict(), indent=2)
+
+
+@dataclass
+class EHRMultiExportRequest:
+    """
+    EHR data export request for multiple participants.
+
+    Used for requesting Electronic Health Record (EHR) data exports for multiple
+    participants in a single batch request within a specified date range.
+
+    Special behavior:
+    - participantIds null/empty: export for all participants in the program
+    - participantIds with values: export only specified participants
+    - participantIds are integers (Long in server DTO), unlike Comms/Profiles which use strings
+    """
+    dateFrom: int
+    dateTo: int
+    participantIds: Optional[List[int]] = None
+    manifestOnly: bool = False
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create EHRMultiExportRequest object from dictionary"""
+        defaults = {
+            'dateFrom': 0,
+            'dateTo': 0,
+            'participantIds': None,
+            'manifestOnly': False
+        }
+
+        merged_data = {**defaults, **data}
+        json_str = json.dumps(merged_data)
+        return cls(**json.loads(json_str))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary, excluding None values"""
+        result = {'dateFrom': self.dateFrom, 'dateTo': self.dateTo}
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
+        result['manifestOnly'] = self.manifestOnly
+        return result
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -395,15 +532,20 @@ class ParticipantProfilesExportRequest:
 
     Special behavior:
     - null or empty array: export ALL participants in the authenticated program
-    - non-empty array: export only specified participants (max 1000 entries)
+    - non-empty array: export only specified participants
     - participantIds must be strings (not integers), per API contract
+    - dateFrom/dateTo optional; if provided, must be valid epoch millis and dateFrom <= dateTo
     """
+    dateFrom: Optional[int] = None
+    dateTo: Optional[int] = None
     participantIds: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, data: dict):
         """Create ParticipantProfilesExportRequest object from dictionary"""
         defaults = {
+            'dateFrom': None,
+            'dateTo': None,
             'participantIds': None
         }
 
@@ -414,6 +556,10 @@ class ParticipantProfilesExportRequest:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary, excluding None values for 'export all' behavior"""
         result = {}
+        if self.dateFrom is not None:
+            result['dateFrom'] = self.dateFrom
+        if self.dateTo is not None:
+            result['dateTo'] = self.dateTo
         if self.participantIds is not None:
             result['participantIds'] = self.participantIds
         return result
@@ -433,6 +579,7 @@ class DeviceDataExportRequest:
     """
     dateFrom: Optional[int] = None
     dateTo: Optional[int] = None
+    participantIds: Optional[List[int]] = None
     deviceTypes: Optional[List[str]] = None
     dataTypes: Optional[List[str]] = None
     manifestOnly: bool = False
@@ -443,6 +590,7 @@ class DeviceDataExportRequest:
         defaults = {
             'dateFrom': None,
             'dateTo': None,
+            'participantIds': None,
             'deviceTypes': None,
             'dataTypes': None,
             'manifestOnly': False
@@ -459,6 +607,8 @@ class DeviceDataExportRequest:
             result['dateFrom'] = self.dateFrom
         if self.dateTo is not None:
             result['dateTo'] = self.dateTo
+        if self.participantIds is not None:
+            result['participantIds'] = self.participantIds
         if self.deviceTypes is not None:
             result['deviceTypes'] = self.deviceTypes
         if self.dataTypes is not None:
@@ -538,6 +688,7 @@ class ExportMetadata:
     output_directory: str
     surveys: List[Dict] = field(default_factory=list)
     failures: List[Dict] = field(default_factory=list)
+    failed_exports_details: List[Dict] = field(default_factory=list)
     end_timestamp: Optional[str] = None
     duration_seconds: Optional[float] = None
 
@@ -553,6 +704,7 @@ class ExportMetadata:
             'output_directory': '',
             'surveys': [],
             'failures': [],
+            'failed_exports_details': [],
             'end_timestamp': None,
             'duration_seconds': None
         }

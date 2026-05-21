@@ -6,7 +6,7 @@ using the V2 API endpoint with advanced features like wide format reporting,
 PII removal, and data dictionary inclusion.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ..core.base_exporter import BaseExporter
 from ..core.client import VibrentHealthAPIClient
@@ -58,7 +58,13 @@ class SurveyV2Exporter(BaseExporter):
             config_manager: Configuration manager instance
         """
         super().__init__(client, config_manager)
+        self._date_from: Optional[int] = None
+        self._date_to: Optional[int] = None
         self.logger.info("Initialized SurveyV2Exporter for V2 API with wide format support")
+
+    def set_date_filter(self, date_from: int, date_to: int) -> None:
+        self._date_from = date_from
+        self._date_to = date_to
 
     def get_export_type(self) -> str:
         """
@@ -82,7 +88,7 @@ class SurveyV2Exporter(BaseExporter):
             VibrentHealthAPIError: If API call fails
         """
         self.logger.info("Fetching surveys from API (V2 uses same survey list as V1)")
-        surveys = self.client.get_surveys()
+        surveys = self.client.get_surveys(date_from=self._date_from, date_to=self._date_to)
         self.logger.info(f"Retrieved {len(surveys)} surveys")
         return surveys
 

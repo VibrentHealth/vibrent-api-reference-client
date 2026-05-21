@@ -7,6 +7,7 @@ data types (surveys, EHR, devices, etc.).
 
 from .survey_exporter import SurveyExporter
 from .survey_v2_exporter import SurveyV2Exporter
+from .bulk_survey_exporter import BulkSurveyExporter
 from .ehr_exporter import EHRExporter
 from .device_exporter import DeviceExporter
 from .participant_profiles_exporter import ParticipantProfilesExporter
@@ -17,6 +18,7 @@ from ..core.exporter_factory import ExporterFactory
 
 ExporterFactory.register_exporter('survey', SurveyExporter)
 ExporterFactory.register_exporter('survey_v2', SurveyV2Exporter)
+ExporterFactory.register_exporter('bulk_survey', BulkSurveyExporter)
 ExporterFactory.register_exporter('ehr', EHRExporter)
 ExporterFactory.register_exporter('device', DeviceExporter)
 ExporterFactory.register_exporter('participant_profiles', ParticipantProfilesExporter)
@@ -25,6 +27,7 @@ ExporterFactory.register_exporter('communication_events', CommunicationEventsExp
 __all__ = [
     'SurveyExporter',
     'SurveyV2Exporter',
+    'BulkSurveyExporter',
     'EHRExporter',
     'DeviceExporter',
     'ParticipantProfilesExporter',
