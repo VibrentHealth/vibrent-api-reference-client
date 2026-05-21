@@ -298,7 +298,7 @@ cp shared/config/sample_config.yaml shared/config/vibrent_config.yaml
 # Device — single: max 24h | multi data: max 100 participants, max 24h | multi manifest: max 360 days
 ./run_python_client.sh --export-type device
 
-# Participant Profiles — no date range required, max 1,000 participants per request
+# Participant Profiles — no date range required, It will export for all participants if not provided
 ./run_python_client.sh --export-type participant_profiles
 
 # Communication Events — data: max 100 participants, max 24h | manifest: max 360 days
