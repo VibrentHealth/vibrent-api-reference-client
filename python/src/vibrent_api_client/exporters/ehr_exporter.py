@@ -11,7 +11,7 @@ from typing import Dict, List
 from ..core.base_exporter import BaseExporter
 from ..core.client import VibrentHealthAPIClient
 from ..core.config import ConfigManager
-from ..models import Participant, EHRMultiExportRequest
+from ..models import Participant, EHRExportRequest, EHRMultiExportRequest
 
 
 class EHRExporter(BaseExporter):
@@ -101,13 +101,12 @@ class EHRExporter(BaseExporter):
         self.logger.info(f"After filtering: {len(participant_ids)} participant(s) will be exported")
         return [batch_participant]
 
-    def create_export_request(
-        self,
-        item: Participant,
-        date_range: Dict[str, int]
-    ) -> EHRMultiExportRequest:
+    def create_export_request(self, item: Participant, date_range: Dict[str, int]):
         """
-        Create a multi-participant EHR export request.
+        Create an EHR export request.
+
+        Uses single-participant endpoint (no date range limit) when 1 participant
+        and manifestOnly=false. Uses multi-participant endpoint otherwise.
         """
         ehr_config = self.get_config_section()
         participant_ids = getattr(item, 'batch_participant_ids', None)
@@ -116,26 +115,39 @@ class EHRExporter(BaseExporter):
         date_from = date_range.get('start_time')
         date_to = date_range.get('end_time')
 
-        request = EHRMultiExportRequest(
-            dateFrom=date_from,
-            dateTo=date_to,
-            participantIds=participant_ids,
-            manifestOnly=manifest_only
-        )
-
-        self.logger.debug(
-            f"Created EHR batch export request: "
-            f"{len(participant_ids) if participant_ids else 'all'} participants, "
-            f"dateFrom={date_from}, dateTo={date_to}, manifestOnly={manifest_only}"
-        )
+        if not manifest_only and participant_ids and len(participant_ids) == 1:
+            request = EHRExportRequest(dateFrom=date_from, dateTo=date_to)
+            self.logger.debug(
+                f"Created EHR single-participant request: "
+                f"participant={participant_ids[0]}, dateFrom={date_from}, dateTo={date_to}"
+            )
+        else:
+            request = EHRMultiExportRequest(
+                dateFrom=date_from,
+                dateTo=date_to,
+                participantIds=participant_ids,
+                manifestOnly=manifest_only
+            )
+            self.logger.debug(
+                f"Created EHR batch export request: "
+                f"{len(participant_ids) if participant_ids else 'all'} participants, "
+                f"dateFrom={date_from}, dateTo={date_to}, manifestOnly={manifest_only}"
+            )
 
         return request
 
-    def request_export(self, item: Participant, export_request: EHRMultiExportRequest) -> str:
+    def request_export(self, item: Participant, export_request) -> str:
         """
-        Request EHR data export via the multi-participant endpoint.
-        Launches a single Dagster job for all participants.
+        Route to the appropriate endpoint based on request type.
+
+        Single participant + data mode → /ehr/{pid}/request (no date range limit)
+        Multiple participants or manifest mode → /ehr/request (batch endpoint)
         """
+        participant_ids = getattr(item, 'batch_participant_ids', None)
+
+        if isinstance(export_request, EHRExportRequest) and participant_ids:
+            return self.client.request_ehr_export(participant_ids[0], export_request)
+
         return self.client.request_multi_ehr_export(export_request)
 
     def get_item_identifier(self, item: Participant) -> str:
