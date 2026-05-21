@@ -105,8 +105,8 @@ class EHRExporter(BaseExporter):
         """
         Create an EHR export request.
 
-        Uses single-participant endpoint (no date range limit) when 1 participant
-        and manifestOnly=false. Uses multi-participant endpoint otherwise.
+        Uses single-participant endpoint (no date range limit) when 1 participant.
+        Uses multi-participant endpoint for 2+ participants.
         """
         ehr_config = self.get_config_section()
         participant_ids = getattr(item, 'batch_participant_ids', None)
@@ -115,7 +115,7 @@ class EHRExporter(BaseExporter):
         date_from = date_range.get('start_time')
         date_to = date_range.get('end_time')
 
-        if not manifest_only and participant_ids and len(participant_ids) == 1:
+        if participant_ids and len(participant_ids) == 1:
             request = EHRExportRequest(dateFrom=date_from, dateTo=date_to)
             self.logger.debug(
                 f"Created EHR single-participant request: "
@@ -140,8 +140,8 @@ class EHRExporter(BaseExporter):
         """
         Route to the appropriate endpoint based on request type.
 
-        Single participant + data mode → /ehr/{pid}/request (no date range limit)
-        Multiple participants or manifest mode → /ehr/request (batch endpoint)
+        Single participant → /ehr/{pid}/request (no date range limit)
+        Multiple participants → /ehr/request (batch endpoint)
         """
         participant_ids = getattr(item, 'batch_participant_ids', None)
 
