@@ -262,63 +262,422 @@ print(f"Downloaded: {file_path}")
 
 Configure `vibrent_config.yaml`, set credentials, and run — the orchestrator handles authentication, form listing, export submission, polling, and download automatically.
 
-### Setup
+### Initial Setup (One Time Only)
+
+**Step 1: Install**
 
 ```bash
-# From the repository root
+cd vibrent-api-reference-client
 ./run_python_client.sh --setup
+```
 
-# Set credentials
+This installs all required software. You only need to do this once.
+
+**Step 2: Set Your Credentials**
+
+You will receive a **Client ID** and **Client Secret** from the Vibrent team. Set them in your terminal before running any export:
+
+```bash
 export VIBRENT_CLIENT_ID="your_client_id"
 export VIBRENT_CLIENT_SECRET="your_client_secret"
 ```
 
-### Configure
+> You must run these two lines every time you open a new terminal window.
+
+**Step 3: Create Your Configuration File**
 
 ```bash
 cp shared/config/sample_config.yaml shared/config/vibrent_config.yaml
-# Edit vibrent_config.yaml — set your API URLs and export options
 ```
 
-### Run
+Open `shared/config/vibrent_config.yaml` in any text editor. Set your environment URLs:
+
+```yaml
+environments:
+  staging:
+    base_url: "https://your-researchcloud-url.com"
+    token_url: "https://your-keycloak-url.com/auth/realms/your_realm/protocol/openid-connect/token"
+```
+
+---
+
+### Export Types
+
+---
+
+#### 1. Survey V1 (One Form at a Time) - Deprecated. Please use Survey V2
+
+**What it does:** Exports survey response data. It fetches the list of available forms in your program, then exports each form one by one.
+
+**Command:**
 
 ```bash
-# Survey V1 — per form, no date range limit, format required (JSON/CSV)
 ./run_python_client.sh --export-type survey
+```
 
-# Survey V2 — wide format, no date range limit, supports PII removal and user type filtering
+**Configuration section:** `survey_export`
+
+**Settings:**
+
+- `use_date_range` — Set to `true` to filter by date, or `false` to export ALL responses regardless of date.
+- `default_days_back` — Number of days to look back. Example: `30` exports the last 30 days of responses.
+- `format` — **Required.** Set to `"JSON"` or `"CSV"` for your output format.
+- `survey_ids` — Set to a list like `[1700, 1701]` to export only those specific forms. Set to `null` to export all forms.
+- `exclude_survey_ids` — Set to a list like `[999, 888]` to skip specific forms. Ignored if `survey_ids` is set.
+- `max_surveys` — Set a number to limit how many forms to export. Set to `null` for no limit.
+
+**Restrictions:** No date range limit. No participant limit.
+
+**Example — Export one specific form for the last 7 days in JSON:**
+
+```yaml
+survey_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 7
+  format: "JSON"
+  request:
+    survey_ids: [1700]
+```
+
+---
+
+#### 2. Survey V2 (Wide Format)
+
+**What it does:** Exports survey data in "wide format" — one row per participant with all questions as columns. Supports PII removal and filtering by user type.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type survey_v2
+```
 
-# Bulk Survey — all/multiple surveys in one request, max 30 days when all_surveys or >1 survey
+**Configuration section:** `survey_v2_export`
+
+**Settings:**
+
+- `use_date_range` — `true` or `false`. Set `false` to export ALL responses.
+- `default_days_back` — Number of days to look back.
+- `file_type` — `"CSV"` or `"JSON"`. CSV is recommended for wide format.
+- `remove_pii` — Set to `true` to strip personally identifiable information from the export.
+- `completed_only` — Set to `true` to export only completed responses.
+- `user_type` — Choose who to include:
+  - `"REAL_ONLY"` — Only real participants
+  - `"TEST_ONLY"` — Only test accounts
+  - `"ALL_USERS"` — Both real and test
+- `choice_value_format` — How multiple choice answers appear:
+  - `"VALUE_ONLY"` — Just the number (e.g., "1")
+  - `"TEXT_ONLY"` — Just the text (e.g., "Strongly Agree")
+  - `"VALUE_AND_TEXT"` — Both (e.g., "1 - Strongly Agree")
+- `survey_ids` — Specific form IDs, or `null` for all.
+
+**Restrictions:** No date range limit. No participant limit.
+
+**Example — Export form 1700 as CSV without PII for real participants only:**
+
+```yaml
+survey_v2_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 30
+  file_type: "CSV"
+  remove_pii: true
+  completed_only: true
+  user_type: "REAL_ONLY"
+  request:
+    survey_ids: [1700]
+```
+
+---
+
+#### 3. Bulk Survey (Multiple Forms in One Request) - Deprecated. Please use Survey V2
+
+**What it does:** Exports multiple surveys (or all surveys) in a single request, instead of one at a time.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type bulk_survey
+```
 
-# EHR — single: no limit | multi data: max 100 participants, max 24h | multi manifest: max 360 days
+**Configuration section:** `bulk_survey_export`
+
+**Settings:**
+
+- `use_date_range` — Set to `true`. Date range is required for bulk exports.
+- `default_days_back` — Number of days. **Maximum 30 days** when exporting all surveys or more than 1 survey.
+- `format` — `"JSON"` or `"CSV"`.
+- `all_surveys` — Set to `true` to export every form in the program. Set to `false` to use `survey_ids`.
+- `survey_ids` — List of specific form IDs. Only used when `all_surveys` is `false`.
+- `exclude_survey_ids` — List of form IDs to exclude. Works with both `all_surveys: true` and `false`.
+
+**Restrictions:**
+
+- When `all_surveys: true` or more than 1 survey — **maximum 30 days** date range.
+- Single survey — no date range limit.
+
+**Example — Export all surveys except form 999 for the last 20 days:**
+
+```yaml
+bulk_survey_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 20
+  format: "JSON"
+  request:
+    all_surveys: true
+    exclude_survey_ids: [999]
+```
+
+---
+
+#### 4. EHR (Electronic Health Records)
+
+**What it does:** Exports EHR/clinical data for specified participants.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type ehr
+```
 
-# Device — single: max 24h | multi data: max 100 participants, max 24h | multi manifest: max 360 days
+**Configuration section:** `ehr_export`
+
+**Settings:**
+
+- `use_date_range` — `true` or `false`.
+- `default_days_back` — Number of days. See restrictions below.
+- `participant_ids` — **Required.** List of participant IDs, e.g., `[24291, 24365]`.
+- `manifest_only` — Set to `true` to export only metadata (no data files). Set to `false` to export full data.
+- `exclude_participant_ids` — List of participant IDs to skip, or `null`.
+- `max_participants` — Number to limit how many participants, or `null`.
+
+**Restrictions:**
+
+**Single participant (1 ID in the list):**
+- `manifest_only: false` — **No date range limit.** You can export years of data.
+- `manifest_only: true` — **No date range limit.** Single participant always uses the unrestricted endpoint.
+
+**Multiple participants (2 or more IDs in the list):**
+- `manifest_only: false` — Date range **maximum 24 hours**. Maximum **100 participants**.
+- `manifest_only: true` — Date range **maximum 360 days**. **Unlimited participants**.
+
+**Example A — One participant, full data, 4 years of history:**
+
+```yaml
+ehr_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 1460
+  participant_ids: [24291]
+  manifest_only: false
+```
+
+**Example B — Multiple participants, manifest only, 300 days:**
+
+```yaml
+ehr_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 300
+  participant_ids: [24291, 24365, 23760]
+  manifest_only: true
+```
+
+---
+
+#### 5. Device Data (Wearables — Fitbit, Garmin, Apple HealthKit)
+
+**What it does:** Exports wearable device data (sleep, steps, heart rate, activity, etc.) for specified participants.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type device
+```
 
-# Participant Profiles — no date range required, It will export for all participants if not provided
+**Configuration section:** `device_export`
+
+**Settings:**
+
+- `use_date_range` — `true` or `false`.
+- `default_days_back` — Number of days. See restrictions below.
+- `participant_ids` — **Required.** List of participant IDs.
+- `manifest_only` — `true` for metadata only, `false` for full data.
+- `device_types` — Filter by device source. Set to `[]` for all devices. Options: `"FITBIT"`, `"GARMIN"`, `"APPLE_HEALTHKIT"`
+- `data_types` — Filter by data type. Set to `[]` for all types. Options: `"SLEEP"`, `"STEPS"`, `"HEART_RATE"`, `"ACTIVITY"`, `"DISTANCE"`, `"RESPIRATORY"`, `"STRESS"`, `"DAILY_SUMMARY"`
+- `exclude_participant_ids` — Participant IDs to skip, or `null`.
+
+**Restrictions:**
+
+Unlike EHR, there is **no special single-participant exception** for Device. The limits are the same regardless of how many participants you have:
+
+- `manifest_only: false` — Date range **maximum 24 hours**. Maximum **100 participants**.
+- `manifest_only: true` — Date range **maximum 360 days**. **Unlimited participants**.
+
+**Example — Fitbit sleep data for 2 participants, last 23 hours:**
+
+```yaml
+device_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 1
+  participant_ids: [23760, 23757]
+  manifest_only: false
+  device_types: ["FITBIT"]
+  data_types: ["SLEEP"]
+```
+
+---
+
+#### 6. Participant Profiles
+
+**What it does:** Exports participant profile/user property data (demographics, enrollment info, etc.). This does NOT use date ranges — it always exports the current profile data.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type participant_profiles
+```
 
-# Communication Events — data: max 100 participants, max 24h | manifest: max 360 days
+**Configuration section:** `participant_profiles_export`
+
+**Settings:**
+
+- `participant_ids` — List of participant IDs, or empty list `[]` to export ALL participants.
+- `max_participants` — Number to limit, or `null`. API hard limit is **1,000 per request**.
+- `exclude_participant_ids` — Participant IDs to skip, or `null`.
+
+**Restrictions:**
+
+- **No date range** — always exports current profile data.
+- **Maximum 1,000 participants** per request.
+- Empty participant list `[]` exports ALL participants in the program.
+
+**Example — Export profiles for all participants:**
+
+```yaml
+participant_profiles_export:
+  use_date_range: false
+  participant_ids: []
+```
+
+---
+
+#### 7. Communication Events (Email & SMS)
+
+**What it does:** Exports email and SMS communication event data — when emails were sent, delivered, opened, bounced, etc.
+
+**Command:**
+
+```bash
 ./run_python_client.sh --export-type communication_events
+```
 
+**Configuration section:** `communication_events_export`
+
+**Settings:**
+
+- `use_date_range` — `true` or `false`.
+- `default_days_back` — Number of days. See restrictions below.
+- `participant_ids` — List of participant IDs, or empty list `[]` for ALL participants.
+- `manifest_only` — `true` for metadata only, `false` for full data.
+- `event_sources` — Filter by platform. Set to `[]` for all sources. Options: `"ITERABLE"`, `"SES"`, `"TWILIO"`
+- `event_types` — Filter by event type. Set to `[]` for all types. Options:
+  - Email: `"EMAIL_SENT"`, `"EMAIL_DELIVERY"`, `"EMAIL_OPEN"`, `"EMAIL_CLICK"`, `"EMAIL_BOUNCE"`, `"EMAIL_COMPLAINT"`, `"EMAIL_UNSUBSCRIBE"`, `"EMAIL_SEND_SKIP"`
+  - SMS: `"SMS_SEND"`, `"SMS_DELIVERED"`, `"SMS_BOUNCE"`, `"SMS_SEND_SKIP"`
+- `exclude_participant_ids` — Participant IDs to skip, or `null`.
+
+**Restrictions:**
+
+- `manifest_only: false` — Date range **maximum 24 hours**. Maximum **100 participants**.
+- `manifest_only: true` — Date range **maximum 360 days**. **Unlimited participants**.
+
+**Example — All email events for 2 participants, last 23 hours:**
+
+```yaml
+communication_events_export:
+  use_date_range: true
+  date_range:
+    default_days_back: 1
+  participant_ids: [9512, 9525]
+  manifest_only: false
+  event_sources: []
+  event_types: ["EMAIL_SENT", "EMAIL_DELIVERY", "EMAIL_OPEN"]
+```
+
+---
+
+### Quick Reference — All Restrictions
+
+**Survey Exports:**
+
+- **Survey V1** — No date range limit. No participant limit. One form at a time.
+- **Survey V2** — No date range limit. No participant limit. Wide format with PII removal.
+- **Bulk Survey** — Maximum 30 days when exporting all surveys or more than 1 survey. Single survey has no limit.
+
+**EHR Export:**
+
+- **1 participant** — No date range limit regardless of manifest_only setting.
+- **2+ participants, manifest_only: false** — Maximum 24 hours, maximum 100 participants.
+- **2+ participants, manifest_only: true** — Maximum 360 days, unlimited participants.
+
+**Device Data Export:**
+
+- **manifest_only: false** — Maximum 24 hours, maximum 100 participants (same for 1 or many).
+- **manifest_only: true** — Maximum 360 days, unlimited participants.
+
+**Participant Profiles:**
+
+- No date range. Maximum 1,000 participants per request. Empty list exports all.
+
+**Communication Events:**
+
+- **manifest_only: false** — Maximum 24 hours, maximum 100 participants.
+- **manifest_only: true** — Maximum 360 days, unlimited participants.
+
+---
+
+### Where Do Exported Files Go?
+
+All exported files are saved to the `output/` directory inside the `python/` folder, organized by export type:
+
+```
+output/
+  survey_exports/
+  ehr_exports/
+  device_exports/
+  participant_profiles_exports/
+  communication_events_exports/
+```
+
+---
+
+### Helpful Commands
+
+```bash
 # List all available export types
 ./run_python_client.sh --list-types
 
-# Custom config file
-./run_python_client.sh --export-type survey --config path/to/config.yaml
+# Use a custom config file
+./run_python_client.sh --export-type survey --config path/to/my_config.yaml
 ```
 
-Or run directly with Python:
+---
 
-```bash
-cd python
-source venv/bin/activate
-python run_export_new.py --export-type survey
-python run_export_new.py --export-type ehr
-```
+### Config-Driven Troubleshooting
+
+**401 Unauthorized** — Wrong or expired credentials. Check your `VIBRENT_CLIENT_ID` and `VIBRENT_CLIENT_SECRET`.
+
+**400 "Date range cannot exceed 24 hours"** — You are in data mode (`manifest_only: false`) with a date range larger than 24 hours. Either reduce `default_days_back` to 1, or set `manifest_only: true`.
+
+**400 "Date range cannot exceed 360 days"** — You are in manifest mode (`manifest_only: true`) with a date range larger than 360 days. Reduce `default_days_back` to 360 or less.
+
+**400 "format is required"** — Survey V1 export requires the `format` field. Set `format: "JSON"` or `format: "CSV"` in the `survey_export` config.
+
+**400 "participantIds required"** — Data mode (`manifest_only: false`) requires participant IDs. Add participant IDs to your config, or switch to `manifest_only: true`.
+
+**No data exported** — There is no data in the date range you specified. Try a wider date range.
 
 ### Configuration Reference
 
