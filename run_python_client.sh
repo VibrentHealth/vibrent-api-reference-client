@@ -9,6 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_DIR="$SCRIPT_DIR/python"
 PYTHON_SCRIPT="$PYTHON_DIR/run_export_new.py"
 
+# macOS: Homebrew Python requires Homebrew's expat library
+if [ "$(uname)" = "Darwin" ] && [ -d "/opt/homebrew/opt/expat/lib" ]; then
+    export DYLD_LIBRARY_PATH="/opt/homebrew/opt/expat/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+fi
+
 echo "🐍 Vibrent Health API Client - Python Implementation"
 echo "==================================================="
 

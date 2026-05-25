@@ -654,14 +654,39 @@ class VibrentHealthAPIClient:
         return safe_from_dict(ExportStatus, status_data, self.logger)
 
     def download_export(self, export_id: str, output_path: Path) -> Path:
-        response = self._make_request("GET", APIEndpoints.EXPORT_DOWNLOAD.format(export_id=export_id))
-        filename = f"export_{export_id}.zip"
-        content_disposition = response.headers.get("Content-Disposition")
-        if content_disposition and "filename=" in content_disposition:
-            filename = export_id + '_' + content_disposition.split("filename=")[1].strip('"')
+        token = self.auth_manager.get_valid_token()
+        url = f"{self.base_url}{APIEndpoints.EXPORT_DOWNLOAD.format(export_id=export_id)}"
+        headers = {Headers.AUTHORIZATION: f"Bearer {token}"}
 
-        file_path = output_path / filename
+        try:
+            with requests.get(url, headers=headers, stream=True, timeout=(self.timeout, 300)) as response:
+                response.raise_for_status()
 
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-        return file_path
+                filename = f"export_{export_id}.zip"
+                content_disposition = response.headers.get("Content-Disposition")
+                if content_disposition and "filename=" in content_disposition:
+                    filename = export_id + '_' + content_disposition.split("filename=")[1].strip('"')
+
+                file_path = output_path / filename
+                downloaded = 0
+                chunk_size = 8 * 1024 * 1024
+
+                with open(file_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        self.logger.info(f"Download progress: {downloaded / (1024 * 1024):.1f} MB")
+
+                self.logger.info(f"Download complete: {downloaded / (1024 * 1024):.1f} MB total")
+                return file_path
+
+        except requests.RequestException as e:
+            error_content = ""
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_content = e.response.text
+                except Exception:
+                    pass
+            raise VibrentHealthAPIError(
+                ErrorMessages.API_REQUEST_FAILED.format(error=f"{str(e)}; Response content: {error_content}")
+            )
