@@ -107,10 +107,21 @@ public class SurveyDataExporter {
     /**
      * Wait for all exports to complete and return completed and failed exports
      */
-    public Map<String, ExportStatus> waitForExportsCompletion(Map<Integer, String> exportMapping) {
+    public Map<String, ExportStatus> waitForExportsCompletion(Map<Integer, String> exportMapping, List<Survey> filteredSurveys) {
         Map<String, ExportStatus> completedExports = new HashMap<>();
         List<String> failedExports = new ArrayList<>();
         Set<String> pendingExports = new HashSet<>(exportMapping.values());
+
+        // Build reverse lookup: exportId -> Survey for failuresV2
+        Map<String, Survey> exportIdToSurvey = new HashMap<>();
+        for (Map.Entry<Integer, String> entry : exportMapping.entrySet()) {
+            for (Survey survey : filteredSurveys) {
+                if (survey.getPlatformFormId() == entry.getKey()) {
+                    exportIdToSurvey.put(entry.getValue(), survey);
+                    break;
+                }
+            }
+        }
         long startWaitTime = System.currentTimeMillis();
 
         // Initialize cumulative status counts
@@ -163,6 +174,23 @@ public class SurveyDataExporter {
                         failure.put("failureReason", status.getFailureReason());
                         failure.put("status", status);
                         exportMetadata.getFailures().add(failure);
+
+                        // Add to failuresV2 with survey context
+                        Survey survey = exportIdToSurvey.get(exportId);
+                        if (survey != null) {
+                            Map<String, Object> failureV2 = new HashMap<>();
+                            failureV2.put("id", survey.getId());
+                            failureV2.put("name", survey.getName());
+                            failureV2.put("displayName", survey.getDisplayName());
+                            failureV2.put("platformFormId", survey.getPlatformFormId());
+                            failureV2.put("downloadEndpoint", status.getDownloadEndpoint());
+                            failureV2.put("submittedOn", status.getSubmittedOn());
+                            failureV2.put("completedOn", status.getCompletedOn());
+                            failureV2.put("exportId", exportId);
+                            failureV2.put("failureReason", status.getFailureReason());
+                            failureV2.put("fileName", status.getFileName());
+                            exportMetadata.getFailuresV2().add(failureV2);
+                        }
 
                     } else if (Constants.ExportStatus.SUBMITTED.equals(status.getStatus()) ||
                             Constants.ExportStatus.IN_PROGRESS.equals(status.getStatus())) {
@@ -299,7 +327,7 @@ public class SurveyDataExporter {
                 return;
             }
 
-            Map<String, ExportStatus> completedExports = waitForExportsCompletion(exportMapping);
+            Map<String, ExportStatus> completedExports = waitForExportsCompletion(exportMapping, filteredSurveys);
             List<Path> downloadedFiles = downloadCompletedExports(completedExports, exportMapping);
 
             if (!downloadedFiles.isEmpty()) {

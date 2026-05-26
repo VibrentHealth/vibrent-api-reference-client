@@ -38,7 +38,9 @@ public class ExportMetadata {
     private List<Map<String, Object>> surveys = new ArrayList<>();
     
     private List<Map<String, Object>> failures = new ArrayList<>();
-    
+
+    private List<Map<String, Object>> failuresV2 = new ArrayList<>();
+
     @JsonProperty("end_timestamp")
     private String endTimestamp;
     
@@ -61,7 +63,11 @@ public class ExportMetadata {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> failures = (List<Map<String, Object>>) data.get("failures");
         metadata.setFailures(failures != null ? failures : new ArrayList<>());
-        
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> failuresV2 = (List<Map<String, Object>>) data.get("failuresV2");
+        metadata.setFailuresV2(failuresV2 != null ? failuresV2 : new ArrayList<>());
+
         metadata.setEndTimestamp((String) data.get("end_timestamp"));
         
         Object durationObj = data.get("duration_seconds");

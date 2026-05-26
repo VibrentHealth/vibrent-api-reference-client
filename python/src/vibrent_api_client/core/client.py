@@ -4,7 +4,6 @@ Main API client for Vibrent Health APIs
 
 import json
 import logging
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,9 +15,11 @@ from .constants import APIEndpoints, ErrorMessages, Headers, TimeConstants
 from ..models import (
     Survey,
     ExportRequest,
+    BulkSurveyExportRequest,
     ExportStatus,
     WideFormatReportRequest,
     EHRExportRequest,
+    EHRMultiExportRequest,
     DeviceDataExportRequest,
     ParticipantProfilesExportRequest,
     CommunicationEventsExportRequest,
@@ -136,10 +137,35 @@ class VibrentHealthAPIClient:
                 ErrorMessages.API_REQUEST_FAILED.format(error=f"{str(e)}; Response content: {error_content}")
             )
 
-    def get_surveys(self) -> List[Survey]:
-        """Get list of available surveys"""
+    def get_surveys(
+        self,
+        date_from: Optional[int] = None,
+        date_to: Optional[int] = None,
+    ) -> List[Survey]:
+        """
+        Get list of available surveys (forms).
+
+        Args:
+            date_from: Optional start of date range filter in epoch milliseconds.
+                       When both date_from and date_to are provided, the API returns
+                       only forms that have responses within the specified window.
+            date_to:   Optional end of date range filter in epoch milliseconds.
+
+        Returns:
+            List of Survey objects
+        """
         self.logger.info("Fetching surveys")
-        response = self._make_request("GET", APIEndpoints.SURVEYS)
+
+        endpoint = APIEndpoints.SURVEYS
+        params: Dict[str, Any] = {}
+        if date_from is not None and date_to is not None:
+            params["dateFrom"] = date_from
+            params["dateTo"] = date_to
+            self.logger.info(
+                f"Applying date range filter: dateFrom={date_from}, dateTo={date_to}"
+            )
+
+        response = self._make_request("GET", endpoint, params=params)
 
         surveys_data = response.json()
         surveys = []
@@ -160,7 +186,7 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EXPORT_REQUEST.format(survey_id=survey_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
@@ -208,13 +234,81 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EXPORT_REQUEST_V2.format(survey_id=survey_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
         export_id = export_data["exportId"]
 
         self.logger.info(f"Survey V2 export requested successfully: {export_id}")
+        return export_id
+
+    def request_bulk_survey_export(self, export_request: BulkSurveyExportRequest) -> str:
+        """
+        Request bulk survey export for multiple surveys in a single API call.
+
+        This API endpoint allows you to export survey response data for multiple surveys
+        (or all surveys) in a single batch request, rather than requesting exports
+        one-by-one per survey.
+
+        Args:
+            export_request: BulkSurveyExportRequest with survey selection and options
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - allSurveys=True: exports all surveys for the authenticated program
+            - allSurveys=False with surveyIds: exports only the specified surveys
+
+        Example:
+            >>> # Export all surveys in a date range
+            >>> request = BulkSurveyExportRequest(
+            ...     dateFrom=1716019200000,
+            ...     dateTo=1716105600000,
+            ...     format="JSON",
+            ...     allSurveys=True
+            ... )
+            >>> export_id = client.request_bulk_survey_export(request)
+            >>>
+            >>> # Export specific surveys
+            >>> request = BulkSurveyExportRequest(
+            ...     dateFrom=1716019200000,
+            ...     dateTo=1716105600000,
+            ...     format="JSON",
+            ...     allSurveys=False,
+            ...     surveyIds=[101, 202, 303]
+            ... )
+            >>> export_id = client.request_bulk_survey_export(request)
+        """
+        survey_count = "all surveys" if export_request.allSurveys else f"{len(export_request.surveyIds) if export_request.surveyIds else 0} survey(s)"
+        self.logger.info(f"Requesting bulk survey export for {survey_count}")
+
+        if export_request.allSurveys:
+            self.logger.debug("Exporting all surveys for the program")
+        elif export_request.surveyIds:
+            self.logger.debug(f"Survey IDs: {export_request.surveyIds[:10]}{'...' if len(export_request.surveyIds) > 10 else ''}")
+        else:
+            self.logger.debug("No survey IDs specified and allSurveys is False")
+
+        if export_request.dateFrom and export_request.dateTo:
+            self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+
+        self.logger.debug(f"Format: {export_request.format}, removePII: {export_request.removePII}, includeLabels: {export_request.includeLabels}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.BULK_SURVEY_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Bulk survey export requested successfully: {export_id}")
         return export_id
 
     def request_ehr_export(self, participant_id: int, export_request: EHRExportRequest) -> str:
@@ -247,13 +341,76 @@ class VibrentHealthAPIClient:
         response = self._make_request(
             "POST",
             APIEndpoints.EHR_EXPORT_REQUEST.format(participant_id=participant_id),
-            json=asdict(export_request)
+            json=export_request.to_dict()
         )
 
         export_data = response.json()
         export_id = export_data["exportId"]
 
         self.logger.info(f"EHR export requested successfully: {export_id}")
+        return export_id
+
+    def request_multi_ehr_export(self, export_request: EHRMultiExportRequest) -> str:
+        """
+        Request EHR data export for multiple participants.
+
+        This API endpoint allows you to export Electronic Health Record (EHR) data
+        for multiple participants in a single batch request within a specified date range.
+
+        Args:
+            export_request: EHRMultiExportRequest with participant IDs, date range, and manifestOnly flag
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports EHR data for ALL participants in the program
+            - participantIds with values: exports EHR data for specified participants only
+            - participantIds are integers (Long in server DTO), unlike Comms/Profiles which use strings
+
+        Example:
+            >>> # Export EHR data for specific participants in date range
+            >>> request = EHRMultiExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=[12345, 67890, 11111],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_ehr_export(request)
+            >>>
+            >>> # Export EHR data for all participants
+            >>> request = EHRMultiExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=None,
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_ehr_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting multi-participant EHR export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting EHR data for all participants in the program")
+
+        self.logger.debug(f"Date range: {export_request.dateFrom} to {export_request.dateTo}")
+        self.logger.debug(f"Manifest only: {export_request.manifestOnly}")
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.EHR_MULTI_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Multi-participant EHR export requested successfully: {export_id}")
         return export_id
 
     def request_device_export(self, participant_id: int, export_request: DeviceDataExportRequest) -> str:
@@ -303,6 +460,61 @@ class VibrentHealthAPIClient:
         self.logger.info(f"Device data export requested successfully: {export_id}")
         return export_id
 
+    def request_multi_device_export(self, export_request: DeviceDataExportRequest) -> str:
+        """
+        Request device data export for multiple participants.
+
+        Args:
+            export_request: DeviceDataExportRequest with participant IDs and filters
+
+        Returns:
+            Export ID string to track the export status
+
+        Raises:
+            VibrentHealthAPIError: If API call fails
+
+        Note:
+            - participantIds null/empty: exports device data for ALL participants in the program
+            - participantIds with values: exports device data for specified participants only
+            - participantIds are integers (Long in server DTO)
+
+        Example:
+            >>> request = DeviceDataExportRequest(
+            ...     dateFrom=1704067200000,
+            ...     dateTo=1706745600000,
+            ...     participantIds=[12345, 67890],
+            ...     deviceTypes=["FITBIT"],
+            ...     manifestOnly=False
+            ... )
+            >>> export_id = client.request_multi_device_export(request)
+        """
+        participant_count = len(export_request.participantIds) if export_request.participantIds else "all"
+        self.logger.info(f"Requesting multi-participant device data export for {participant_count} participant(s)")
+
+        if export_request.participantIds:
+            self.logger.debug(f"Participant IDs: {export_request.participantIds[:10]}{'...' if len(export_request.participantIds) > 10 else ''}")
+        else:
+            self.logger.debug("Exporting device data for all participants in the program")
+
+        self.logger.debug(
+            f"Filters - Date range: {export_request.dateFrom} to {export_request.dateTo}, "
+            f"Device types: {export_request.deviceTypes}, "
+            f"Data types: {export_request.dataTypes}, "
+            f"Manifest only: {export_request.manifestOnly}"
+        )
+
+        response = self._make_request(
+            "POST",
+            APIEndpoints.DEVICE_MULTI_EXPORT_REQUEST,
+            json=export_request.to_dict()
+        )
+
+        export_data = response.json()
+        export_id = export_data["exportId"]
+
+        self.logger.info(f"Multi-participant device data export requested successfully: {export_id}")
+        return export_id
+
     def request_participant_profiles_export(self, export_request: ParticipantProfilesExportRequest) -> str:
         """
         Request participant profiles (user properties) export.
@@ -322,8 +534,9 @@ class VibrentHealthAPIClient:
 
         Note:
             - participantIds null/empty: exports ALL participants in the authenticated program
-            - participantIds with values: exports only specified participants (max 1000)
+            - participantIds with values: exports only specified participants
             - participantIds must be strings per API contract
+            - dateFrom/dateTo optional; if provided, must be valid epoch millis and dateFrom <= dateTo
 
         Example:
             >>> # Export specific participants
@@ -441,14 +654,39 @@ class VibrentHealthAPIClient:
         return safe_from_dict(ExportStatus, status_data, self.logger)
 
     def download_export(self, export_id: str, output_path: Path) -> Path:
-        response = self._make_request("GET", APIEndpoints.EXPORT_DOWNLOAD.format(export_id=export_id))
-        filename = f"export_{export_id}.zip"
-        content_disposition = response.headers.get("Content-Disposition")
-        if content_disposition and "filename=" in content_disposition:
-            filename = export_id + '_' + content_disposition.split("filename=")[1].strip('"')
+        token = self.auth_manager.get_valid_token()
+        url = f"{self.base_url}{APIEndpoints.EXPORT_DOWNLOAD.format(export_id=export_id)}"
+        headers = {Headers.AUTHORIZATION: f"Bearer {token}"}
 
-        file_path = output_path / filename
+        try:
+            with requests.get(url, headers=headers, stream=True, timeout=(self.timeout, 300)) as response:
+                response.raise_for_status()
 
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-        return file_path
+                filename = f"export_{export_id}.zip"
+                content_disposition = response.headers.get("Content-Disposition")
+                if content_disposition and "filename=" in content_disposition:
+                    filename = export_id + '_' + content_disposition.split("filename=")[1].strip('"')
+
+                file_path = output_path / filename
+                downloaded = 0
+                chunk_size = 8 * 1024 * 1024
+
+                with open(file_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        self.logger.info(f"Download progress: {downloaded / (1024 * 1024):.1f} MB")
+
+                self.logger.info(f"Download complete: {downloaded / (1024 * 1024):.1f} MB total")
+                return file_path
+
+        except requests.RequestException as e:
+            error_content = ""
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_content = e.response.text
+                except Exception:
+                    pass
+            raise VibrentHealthAPIError(
+                ErrorMessages.API_REQUEST_FAILED.format(error=f"{str(e)}; Response content: {error_content}")
+            )

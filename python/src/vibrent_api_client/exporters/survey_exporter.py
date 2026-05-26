@@ -5,7 +5,7 @@ This module contains the SurveyExporter class which handles survey-specific
 export logic using the v1 API endpoint.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ..core.base_exporter import BaseExporter
 from ..core.client import VibrentHealthAPIClient
@@ -45,7 +45,13 @@ class SurveyExporter(BaseExporter):
             config_manager: Configuration manager instance
         """
         super().__init__(client, config_manager)
+        self._date_from: Optional[int] = None
+        self._date_to: Optional[int] = None
         self.logger.info("Initialized SurveyExporter for v1 API")
+
+    def set_date_filter(self, date_from: int, date_to: int) -> None:
+        self._date_from = date_from
+        self._date_to = date_to
 
     def get_export_type(self) -> str:
         """
@@ -67,7 +73,7 @@ class SurveyExporter(BaseExporter):
             VibrentHealthAPIError: If API call fails
         """
         self.logger.info("Fetching surveys from API")
-        surveys = self.client.get_surveys()
+        surveys = self.client.get_surveys(date_from=self._date_from, date_to=self._date_to)
         self.logger.info(f"Retrieved {len(surveys)} surveys")
         return surveys
 

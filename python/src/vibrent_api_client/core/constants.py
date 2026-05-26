@@ -18,11 +18,20 @@ class APIEndpoints:
     # Export endpoints - Survey (v2) with wide format support
     EXPORT_REQUEST_V2 = "/api/ext/export/v2/survey/{survey_id}/request"
 
-    # Export endpoints - EHR
+    # Export endpoints - Survey (bulk, multiple surveys in one call)
+    BULK_SURVEY_EXPORT_REQUEST = "/api/ext/export/survey/request"
+
+    # Export endpoints - EHR (single-participant)
     EHR_EXPORT_REQUEST = "/api/ext/export/ehr/{participant_id}/request"
 
-    # Export endpoints - Device
+    # Export endpoints - EHR (multi-participant)
+    EHR_MULTI_EXPORT_REQUEST = "/api/ext/export/ehr/request"
+
+    # Export endpoints - Device (single-participant)
     DEVICE_EXPORT_REQUEST = "/api/ext/export/device/{participant_id}/request"
+
+    # Export endpoints - Device (multi-participant)
+    DEVICE_MULTI_EXPORT_REQUEST = "/api/ext/export/device/request"
 
     # Export endpoints - Participant Profiles (User Properties)
     PARTICIPANT_PROFILES_EXPORT_REQUEST = "/api/ext/export/participantProfiles/request"
@@ -108,7 +117,7 @@ class ErrorMessages:
     
     # Export errors
     NO_SURVEYS_FOUND = "No surveys found"
-    EXPORT_REQUEST_FAILED = "Failed to request export for survey {survey_id}: {error}"
+    EXPORT_REQUEST_FAILED = "Failed to request export for {survey_id}: {error}"
     EXPORT_DOWNLOAD_FAILED = "Failed to download export {export_id}: {error}"
     
     # Configuration errors
@@ -200,6 +209,7 @@ class ExportType:
     """Export type identifiers"""
     SURVEY = "survey"
     SURVEY_V2 = "survey_v2"
+    BULK_SURVEY = "bulk_survey"
     EHR = "ehr"
     DEVICE = "device"
     PARTICIPANT_PROFILES = "participant_profiles"
