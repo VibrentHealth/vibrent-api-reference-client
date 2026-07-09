@@ -338,6 +338,9 @@ class ExportOrchestrator:
         for i, item in enumerate(filtered_items):
             # Initialize item in metadata with empty export details
             item_dict = asdict(item) if hasattr(item, '__dataclass_fields__') else {'item': str(item)}
+            # Capture the identifier now: metadata stores plain dicts, so exporter
+            # methods that need attribute access can't be called on them later
+            item_dict['item_identifier'] = self.exporter.get_item_identifier(item)
             item_dict['export_details'] = []
             self.export_metadata.surveys.append(item_dict)
 
@@ -645,6 +648,10 @@ class ExportOrchestrator:
             if len(export_details) <= 1:
                 continue  # No merging needed for single export
 
+            # Items in metadata are plain dicts (asdict), so use the stored
+            # identifier instead of exporter methods that expect model objects
+            item_id = item.get('item_identifier', 'unknown')
+
             # Collect file paths
             file_paths = []
             for export_detail in export_details:
@@ -655,14 +662,22 @@ class ExportOrchestrator:
                         'sequential_part_number',
                         export_detail.get('chunk_index', 0) + 1  # fallback if extract was skipped
                     )
-                    # Look for pattern like *_part_N.json in output directory
-                    for extracted_file in self.output_dir.glob(f"*_part_{seq_num}.json"):
-                        file_paths.append(extracted_file)
-                        break
+                    # Search recursively: V2 exports place response files in
+                    # subdirectories (e.g. responses/<survey>/), and skip the
+                    # top-level manifest_part_N.json bookkeeping files
+                    candidates = [
+                        p for p in sorted(self.output_dir.rglob(f"*_part_{seq_num}.json"))
+                        if not p.name.startswith("manifest")
+                    ]
+                    # Prefer files whose path references this item, so parts from
+                    # other items exported in the same run are not picked up
+                    scoped = [p for p in candidates if item_id in str(p.relative_to(self.output_dir))]
+                    matches = scoped or candidates
+                    if matches:
+                        file_paths.append(matches[0])
 
             if len(file_paths) > 1:
                 # Merge files
-                item_id = self.exporter.get_item_identifier(item)
                 self.logger.info(f"Merging {len(file_paths)} files for item {item_id}")
 
                 merged_filename = f"item_{item_id}_merged.json"
