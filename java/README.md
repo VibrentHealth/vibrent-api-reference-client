@@ -210,7 +210,7 @@ exportId = client.requestMultiDeviceExport(deviceManifest);
 // eventSources: ITERABLE, SES, TWILIO
 // eventTypes:   EMAIL_SENT, EMAIL_DELIVERY, EMAIL_OPEN, EMAIL_CLICK,
 //               EMAIL_BOUNCE, EMAIL_COMPLAINT, EMAIL_UNSUBSCRIBE, EMAIL_SEND_SKIP,
-//               SMS_SEND, SMS_DELIVERED, SMS_BOUNCE, SMS_SEND_SKIP
+//               SMS_SEND, SMS_DELIVERED, SMS_BOUNCE, SMS_SEND_SKIP, SMS_UNSUBSCRIBE
 CommunicationEventsExportRequest commsRequest = new CommunicationEventsExportRequest();
 commsRequest.setDateFrom(1747614000000L);
 commsRequest.setDateTo(1747700400000L);

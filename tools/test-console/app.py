@@ -528,7 +528,7 @@ with tabs[8]:
         [
             "EMAIL_SENT", "EMAIL_DELIVERY", "EMAIL_OPEN", "EMAIL_CLICK",
             "EMAIL_BOUNCE", "EMAIL_COMPLAINT", "EMAIL_UNSUBSCRIBE", "EMAIL_SEND_SKIP",
-            "SMS_SEND", "SMS_DELIVERED", "SMS_BOUNCE", "SMS_SEND_SKIP",
+            "SMS_SEND", "SMS_DELIVERED", "SMS_BOUNCE", "SMS_SEND_SKIP", "SMS_UNSUBSCRIBE",
         ],
         key="ce_et",
     )

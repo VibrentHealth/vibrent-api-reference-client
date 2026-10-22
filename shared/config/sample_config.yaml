@@ -553,6 +553,7 @@ communication_events_export:
   #   - SMS_DELIVERED: SMS was delivered to recipient's device
   #   - SMS_BOUNCE: SMS failed to deliver
   #   - SMS_SEND_SKIP: SMS send was skipped
+  #   - SMS_UNSUBSCRIBE: Recipient unsubscribed from SMS
   #
   # Other:
   #   - EVENT_TYPE: Generic event type (rarely used)
