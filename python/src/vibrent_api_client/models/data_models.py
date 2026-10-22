@@ -466,6 +466,7 @@ class CommunicationEventType:
     SMS_DELIVERED = "SMS_DELIVERED"
     SMS_BOUNCE = "SMS_BOUNCE"
     SMS_SEND_SKIP = "SMS_SEND_SKIP"
+    SMS_UNSUBSCRIBE = "SMS_UNSUBSCRIBE"
 
     # Other
     EVENT_TYPE = "EVENT_TYPE"
@@ -488,6 +489,7 @@ class CommunicationEventType:
             cls.SMS_DELIVERED,
             cls.SMS_BOUNCE,
             cls.SMS_SEND_SKIP,
+            cls.SMS_UNSUBSCRIBE,
             # Other
             cls.EVENT_TYPE
         ]
@@ -513,7 +515,8 @@ class CommunicationEventType:
             cls.SMS_SEND,
             cls.SMS_DELIVERED,
             cls.SMS_BOUNCE,
-            cls.SMS_SEND_SKIP
+            cls.SMS_SEND_SKIP,
+            cls.SMS_UNSUBSCRIBE
         ]
 
     @classmethod

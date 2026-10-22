@@ -585,7 +585,7 @@ participant_profiles_export:
 - `event_sources` — Filter by platform. Set to `[]` for all sources. Options: `"ITERABLE"`, `"SES"`, `"TWILIO"`
 - `event_types` — Filter by event type. Set to `[]` for all types. Options:
   - Email: `"EMAIL_SENT"`, `"EMAIL_DELIVERY"`, `"EMAIL_OPEN"`, `"EMAIL_CLICK"`, `"EMAIL_BOUNCE"`, `"EMAIL_COMPLAINT"`, `"EMAIL_UNSUBSCRIBE"`, `"EMAIL_SEND_SKIP"`
-  - SMS: `"SMS_SEND"`, `"SMS_DELIVERED"`, `"SMS_BOUNCE"`, `"SMS_SEND_SKIP"`
+  - SMS: `"SMS_SEND"`, `"SMS_DELIVERED"`, `"SMS_BOUNCE"`, `"SMS_SEND_SKIP"`, `"SMS_UNSUBSCRIBE"`
 - `exclude_participant_ids` — Participant IDs to skip, or `null`.
 
 **Restrictions:**
