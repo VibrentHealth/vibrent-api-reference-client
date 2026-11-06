@@ -244,6 +244,14 @@ survey_v2_export:
   #   - VALUE_AND_TEXT: Both (e.g., "1 - Strongly Agree")
   choice_value_format: "VALUE_AND_TEXT"
 
+  # Response key: how each answer in a JSON export's qRes section is keyed (JSON only; ignored for CSV)
+  # Options:
+  #   - VARIABLE_NAME (default): the question's variable name (e.g., "DNA Activation-Phone Number").
+  #     A shared name is suffixed with the question ID, so a key can differ between survey versions.
+  #   - QUESTION_ID: the question ID as a string (e.g., "277047"). The same in every survey version;
+  #     join to the data dictionary on quesId.
+  # response_key: "QUESTION_ID"
+
   # User type filtering
   # Options:
   #   - REAL_ONLY: Only real participants

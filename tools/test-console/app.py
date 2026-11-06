@@ -312,6 +312,9 @@ with tabs[2]:
     sv2_choice_format = st.selectbox(
         "Choice Value Format", ["VALUE_AND_TEXT", "VALUE_ONLY", "TEXT_ONLY"], key="sv2_cvf"
     )
+    sv2_response_key = st.selectbox(
+        "Response Key (JSON only)", ["VARIABLE_NAME", "QUESTION_ID"], key="sv2_rk"
+    )
     sv2_user_type = st.selectbox("User Type", ["REAL_ONLY", "TEST_ONLY", "ALL_USERS"], key="sv2_ut")
 
     endpoint = APIEndpoints.EXPORT_REQUEST_V2.format(survey_id=int(sv2_survey_id))
@@ -334,6 +337,7 @@ with tabs[2]:
             combineValuesForMultipleChoices=sv2_combine_mc,
             choiceValueFormat=sv2_choice_format,
             userType=sv2_user_type,
+            responseKey=sv2_response_key,
         )
         result = make_authenticated_request("POST", endpoint, req.to_dict())
         show_request_response(result, "Survey V2 Export")

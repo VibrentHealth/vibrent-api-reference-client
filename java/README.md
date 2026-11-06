@@ -144,6 +144,7 @@ v2Request.setRemovePII(true);           // exclude PII
 v2Request.setCompletedOnly(true);       // only completed responses
 v2Request.setUserType("REAL_ONLY");     // REAL_ONLY | TEST_ONLY | ALL_USERS
 v2Request.setChoiceValueFormat("VALUE_AND_TEXT"); // VALUE_ONLY | TEXT_ONLY | VALUE_AND_TEXT
+v2Request.setResponseKey("VARIABLE_NAME");        // VARIABLE_NAME | QUESTION_ID (JSON only)
 String exportId = client.requestSurveyV2Export(1700, v2Request);
 ```
 
