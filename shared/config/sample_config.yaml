@@ -235,6 +235,7 @@ survey_v2_export:
 
   # Multiple choice formatting
   # Combine multiple values for multiple choice questions (set to false to keep them separate)
+  # Ignored when response_key is QUESTION_ID (answers are always combined)
   combine_values_for_multiple_choices: true
 
   # Choice value format for multiple choice questions
@@ -243,6 +244,16 @@ survey_v2_export:
   #   - TEXT_ONLY: Just the text (e.g., "Strongly Agree")
   #   - VALUE_AND_TEXT: Both (e.g., "1 - Strongly Agree")
   choice_value_format: "VALUE_AND_TEXT"
+
+  # Response key: how each answer in a JSON export's qRes section is keyed (JSON only; ignored for CSV)
+  # Options:
+  #   - VARIABLE_NAME (default): the question's variable name (e.g., "DNA Activation-Phone Number").
+  #     A shared name is suffixed with the question ID, so a key can differ between survey versions.
+  #   - QUESTION_ID: the question ID as a string (e.g., "277047"). The same in every survey version;
+  #     join to the data dictionary on quesId.
+  #     combine_values_for_multiple_choices is ignored in this mode: choice answers are always
+  #     combined, so every question has exactly one qRes entry.
+  # response_key: "QUESTION_ID"
 
   # User type filtering
   # Options:

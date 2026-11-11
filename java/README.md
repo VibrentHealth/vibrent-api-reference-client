@@ -144,8 +144,15 @@ v2Request.setRemovePII(true);           // exclude PII
 v2Request.setCompletedOnly(true);       // only completed responses
 v2Request.setUserType("REAL_ONLY");     // REAL_ONLY | TEST_ONLY | ALL_USERS
 v2Request.setChoiceValueFormat("VALUE_AND_TEXT"); // VALUE_ONLY | TEXT_ONLY | VALUE_AND_TEXT
+v2Request.setResponseKey("VARIABLE_NAME");        // VARIABLE_NAME | QUESTION_ID (JSON only)
 String exportId = client.requestSurveyV2Export(1700, v2Request);
 ```
+
+`responseKey` sets how each answer in a JSON export's `qRes` section is keyed:
+
+- `VARIABLE_NAME` (default): the question's variable name.
+- `QUESTION_ID`: the question ID as a string, the same in every survey version.
+  - `combineValuesForMultipleChoices` is ignored in this mode. Choice answers are always combined, so every question has exactly one `qRes` entry and a choice that was not selected has no entry.
 
 ### EHR Export
 

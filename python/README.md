@@ -200,6 +200,7 @@ request = WideFormatReportRequest(
     completedOnly=True,
     userType="REAL_ONLY",
     choiceValueFormat="VALUE_AND_TEXT",
+    responseKey="VARIABLE_NAME",  # or "QUESTION_ID" (JSON only)
 )
 export_id = client.request_survey_v2_export(1700, request)
 ```
@@ -369,6 +370,10 @@ survey_export:
   - `"VALUE_ONLY"` — Just the number (e.g., "1")
   - `"TEXT_ONLY"` — Just the text (e.g., "Strongly Agree")
   - `"VALUE_AND_TEXT"` — Both (e.g., "1 - Strongly Agree")
+- `response_key` — How each answer in the `qRes` section is keyed. JSON exports only; ignored for CSV.
+  - `"VARIABLE_NAME"` (default) — The question's variable name. A name shared within a survey version gets a `_<quesId>` suffix, so the same question's key can differ between versions.
+  - `"QUESTION_ID"` — The question ID as a string (e.g., `"277047"`). It is the same in every survey version and matches the data dictionary's `quesId`.
+    - `combine_values_for_multiple_choices` is ignored in this mode. Choice answers are always combined, so every question has exactly one `qRes` entry and a choice that was not selected has no entry.
 - `survey_ids` — Specific form IDs, or `null` for all.
 
 **Restrictions:** No date range limit. No participant limit.
@@ -387,6 +392,16 @@ survey_v2_export:
   request:
     survey_ids: [1700]
 ```
+
+**Example — Export as JSON with answers keyed by question ID:**
+
+```yaml
+survey_v2_export:
+  file_type: "JSON"
+  response_key: "QUESTION_ID"
+```
+
+Each exported JSON file records the setting in `metadata.requestParams.responseKey`, so you can confirm which mode produced it.
 
 ---
 
