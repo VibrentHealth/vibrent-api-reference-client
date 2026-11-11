@@ -103,6 +103,7 @@ Survey V2 adds wide-format options on top of the export settings above, such as 
 - **response_key**: How each answer in a JSON export's `qRes` section is keyed. JSON only; ignored for CSV.
   - `VARIABLE_NAME` (default): the question's variable name. A name shared within a survey version gets a `_<quesId>` suffix, so a key can differ between versions.
   - `QUESTION_ID`: the question ID as a string (e.g. `"277047"`), the same in every survey version. Join to the data dictionary on `quesId`.
+    - `combine_values_for_multiple_choices` is ignored in this mode. Choice answers are always combined, so every question has exactly one `qRes` entry and a choice that was not selected has no entry.
 
 ```yaml
 survey_v2_export:

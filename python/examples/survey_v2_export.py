@@ -260,6 +260,43 @@ def example_programmatic_configuration():
     print(f"  Output: {metadata.output_directory}")
 
 
+def example_json_keyed_by_question_id():
+    """Example 7: Survey V2 JSON export with answers keyed by question ID"""
+    print("\n" + "=" * 60)
+    print("Example 7: Survey V2 JSON Export Keyed by Question ID")
+    print("=" * 60)
+
+    load_dotenv()
+    config_manager = ConfigManager()
+
+    # response_key applies to JSON exports only; the server ignores it for CSV.
+    # With QUESTION_ID, combine_values_for_multiple_choices is ignored and
+    # choice answers are always combined into the question's single entry.
+    config_manager.update_config({
+        'export': {
+            'type': 'survey_v2',
+            'survey_v2': {
+                'file_type': 'JSON',
+                'response_key': 'QUESTION_ID',  # Default is VARIABLE_NAME
+                'completed_only': True,
+                'user_type': 'REAL_ONLY',
+                'request': {
+                    'max_surveys': 1
+                }
+            }
+        }
+    })
+
+    client = VibrentHealthAPIClient(config_manager)
+    exporter = SurveyV2Exporter(client, config_manager)
+    orchestrator = ExportOrchestrator(exporter, config_manager)
+    metadata = orchestrator.run_export()
+
+    print(f"\n✓ Export Complete with question-ID keys!")
+    print(f"  Surveys exported: {metadata.successful_exports}")
+    print(f"  Output: {metadata.output_directory}")
+
+
 def main():
     """Run all examples"""
     print("\n" + "=" * 60)
@@ -284,6 +321,7 @@ def main():
         # example_json_format()
         # example_all_users_including_test()
         # example_programmatic_configuration()
+        # example_json_keyed_by_question_id()
 
         print("\n" + "=" * 60)
         print("All examples completed successfully!")

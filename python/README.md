@@ -373,6 +373,7 @@ survey_export:
 - `response_key` — How each answer in the `qRes` section is keyed. JSON exports only; ignored for CSV.
   - `"VARIABLE_NAME"` (default) — The question's variable name. A name shared within a survey version gets a `_<quesId>` suffix, so the same question's key can differ between versions.
   - `"QUESTION_ID"` — The question ID as a string (e.g., `"277047"`). It is the same in every survey version and matches the data dictionary's `quesId`.
+    - `combine_values_for_multiple_choices` is ignored in this mode. Choice answers are always combined, so every question has exactly one `qRes` entry and a choice that was not selected has no entry.
 - `survey_ids` — Specific form IDs, or `null` for all.
 
 **Restrictions:** No date range limit. No participant limit.
