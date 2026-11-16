@@ -204,6 +204,9 @@ class WideFormatReportRequest:
     combineValuesForMultipleChoices: bool = True
     choiceValueFormat: str = "VALUE_AND_TEXT"  # VALUE_ONLY, TEXT_ONLY, VALUE_AND_TEXT
     userType: str = "REAL_ONLY"  # REAL_ONLY, TEST_ONLY, ALL_USERS
+    # How each qRes entry is keyed: VARIABLE_NAME (default) or QUESTION_ID.
+    # The server applies it to JSON exports only.
+    responseKey: str = "VARIABLE_NAME"
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -217,7 +220,8 @@ class WideFormatReportRequest:
             'includeWithdrawnUser': True,
             'combineValuesForMultipleChoices': True,
             'choiceValueFormat': 'VALUE_AND_TEXT',
-            'userType': 'REAL_ONLY'
+            'userType': 'REAL_ONLY',
+            'responseKey': 'VARIABLE_NAME'
         }
 
         merged_data = {**defaults, **data}
@@ -234,6 +238,7 @@ class WideFormatReportRequest:
             'combineValuesForMultipleChoices': self.combineValuesForMultipleChoices,
             'choiceValueFormat': self.choiceValueFormat,
             'userType': self.userType,
+            'responseKey': self.responseKey,
         }
         if self.dateFrom is not None:
             result['dateFrom'] = self.dateFrom

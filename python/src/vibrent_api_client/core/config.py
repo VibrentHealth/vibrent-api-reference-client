@@ -154,6 +154,7 @@ class ConfigManager:
                 "include_withdrawn_user": True,
                 "combine_values_for_multiple_choices": True,
                 "choice_value_format": "VALUE_AND_TEXT",
+                "response_key": "VARIABLE_NAME",
                 "user_type": "REAL_ONLY",
                 ConfigKeys.MONITORING: {
                     ConfigKeys.POLLING_INTERVAL: TimeConstants.DEFAULT_POLLING_INTERVAL,

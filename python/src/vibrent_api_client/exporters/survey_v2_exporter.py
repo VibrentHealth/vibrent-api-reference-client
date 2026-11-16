@@ -36,6 +36,7 @@ class SurveyV2Exporter(BaseExporter):
             include_withdrawn_user: true
             combine_values_for_multiple_choices: true
             choice_value_format: VALUE_AND_TEXT  # VALUE_ONLY, TEXT_ONLY, VALUE_AND_TEXT
+            response_key: VARIABLE_NAME  # or QUESTION_ID; JSON only
             user_type: REAL_ONLY  # REAL_ONLY, TEST_ONLY, ALL_USERS
             request:
               max_surveys: null
@@ -171,7 +172,14 @@ class SurveyV2Exporter(BaseExporter):
             combineValuesForMultipleChoices=v2_config.get("combine_values_for_multiple_choices", True),
             choiceValueFormat=v2_config.get("choice_value_format", "VALUE_AND_TEXT"),
             userType=v2_config.get("user_type", "REAL_ONLY"),
+            responseKey=v2_config.get("response_key", "VARIABLE_NAME"),
         )
+
+        if request.responseKey != "VARIABLE_NAME" and request.fileType != "JSON":
+            self.logger.warning(
+                f"response_key={request.responseKey} only applies to JSON exports; "
+                f"the server ignores it for file_type={request.fileType}"
+            )
 
         self.logger.debug(
             f"Created V2 export request for survey {survey.platformFormId}: "
@@ -179,7 +187,8 @@ class SurveyV2Exporter(BaseExporter):
             f"removePII={request.removePII}, "
             f"completedOnly={request.completedOnly}, "
             f"userType={request.userType}, "
-            f"choiceValueFormat={request.choiceValueFormat}"
+            f"choiceValueFormat={request.choiceValueFormat}, "
+            f"responseKey={request.responseKey}"
         )
 
         return request

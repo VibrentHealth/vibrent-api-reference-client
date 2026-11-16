@@ -52,6 +52,13 @@ public class WideFormatReportRequest {
     @JsonProperty("userType")
     private String userType = "REAL_ONLY";
 
+    /**
+     * How each qRes entry is keyed. Valid values: "VARIABLE_NAME" (default), "QUESTION_ID".
+     * The server applies it to JSON exports only.
+     */
+    @JsonProperty("responseKey")
+    private String responseKey = "VARIABLE_NAME";
+
     @SuppressWarnings("unchecked")
     public static WideFormatReportRequest fromMap(Map<String, Object> data) {
         WideFormatReportRequest request = new WideFormatReportRequest();
@@ -65,6 +72,7 @@ public class WideFormatReportRequest {
         request.setCompletedOnly((Boolean) data.getOrDefault("completedOnly", true));
         request.setIncludeWithdrawnUser((Boolean) data.getOrDefault("includeWithdrawnUser", true));
         request.setUserType((String) data.getOrDefault("userType", "REAL_ONLY"));
+        request.setResponseKey((String) data.getOrDefault("responseKey", "VARIABLE_NAME"));
         return request;
     }
 }

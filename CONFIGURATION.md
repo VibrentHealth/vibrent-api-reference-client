@@ -98,6 +98,19 @@ environment:
 - **request**: Survey filtering and processing limits
 - **monitoring**: Export monitoring settings
 
+### Survey V2 Export Configuration (`survey_v2_export`)
+Survey V2 adds wide-format options on top of the export settings above, such as `file_type`, `remove_pii`, `choice_value_format` and `user_type`. See the `survey_v2_export` section of `shared/config/sample_config.yaml` for the full list.
+- **response_key**: How each answer in a JSON export's `qRes` section is keyed. JSON only; ignored for CSV.
+  - `VARIABLE_NAME` (default): the question's variable name. A name shared within a survey version gets a `_<quesId>` suffix, so a key can differ between versions.
+  - `QUESTION_ID`: the question ID as a string (e.g. `"277047"`), the same in every survey version. Join to the data dictionary on `quesId`.
+    - `combine_values_for_multiple_choices` is ignored in this mode. Choice answers are always combined, so every question has exactly one `qRes` entry and a choice that was not selected has no entry.
+
+```yaml
+survey_v2_export:
+  file_type: "JSON"
+  response_key: "QUESTION_ID"
+```
+
 ### Output Configuration
 - **base_directory**: Base directory for all exports (default: "output")
 - **survey_exports_dir**: Survey exports directory under base_directory (default: "survey_exports")
