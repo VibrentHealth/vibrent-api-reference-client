@@ -43,6 +43,7 @@ Thumbs.db
 # Project specific
 survey_exports/
 output/
+temp/
 *.log
 shared/config/vibrent_config.yaml
 java/target/
